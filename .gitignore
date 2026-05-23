@@ -1,0 +1,35 @@
+# --- .NET ---
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.pdb
+
+# --- Node ---
+node_modules/
+dist/
+.vite/
+*.log
+.env.local
+.env.*.local
+
+# --- Secrets ---
+.env
+
+# --- IDE ---
+.idea/
+.vscode/
+mods/
+
+# --- Docker volumes / local data ---
+.data/
+*.tmp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Build artifacts ---
+publish/
+artifacts/
