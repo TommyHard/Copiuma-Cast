@@ -4,7 +4,7 @@ using RabbitMQ.Client;
 namespace Cast.API.Events;
 
 /// <summary>
-/// Держатель единственного подключения к RabbitMQ (синглтон). Соединение
+/// Держатель единственного подключения к RabbitMQ (singleton). Соединение
 /// потокобезопасно; каналы (IModel) — нет, поэтому их создают по месту
 /// </summary>
 public sealed class RabbitMqConnection : IDisposable

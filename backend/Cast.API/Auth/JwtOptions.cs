@@ -1,7 +1,7 @@
 namespace Cast.API.Auth;
 
 /// <summary>
-/// Настройки JWT из секции "Jwt" конфигурации
+/// Настройки JWT
 /// </summary>
 public sealed class JwtOptions
 {

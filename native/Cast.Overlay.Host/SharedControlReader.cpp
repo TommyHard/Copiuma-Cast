@@ -9,8 +9,6 @@ namespace cast {
         char name[128];
         ipc::MakeControlName(name, sizeof(name), gamePid);
 
-        // DLL создаёт отображение; хост открывает существующее. Если DLL ещё не
-        // поднялась — OpenFileMapping вернёт null, попробуем позже
         m_mapping = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, name);
         if (!m_mapping)
             return false;
@@ -75,5 +73,4 @@ namespace cast {
         m_block->tail = tail + 1; // публикуем продвижение консьюмера
         return true;
     }
-
 }

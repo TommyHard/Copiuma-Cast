@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "ControlChannel.h"
 #include "Logger.h"
-
 #include <atomic>
 
 namespace cast::overlay {
@@ -113,12 +112,12 @@ namespace cast::overlay {
         const LONG tail = g_block->tail; // consumer двигает; читаем как снимок
         // Заполнено, если занято capacity элементов
         if (static_cast<uint32_t>(head - tail) >= ipc::kInputRingCapacity)
-            return; // переполнение — отбрасываем (обычно лишние mouse-move)
+            return;
 
         const uint32_t idx = static_cast<uint32_t>(head) & (ipc::kInputRingCapacity - 1);
         g_block->ring[idx] = ev;
-        MemoryBarrier();              // данные элемента видны до публикации head
+        MemoryBarrier();
         InterlockedIncrement(&g_block->head);
     }
 
-} // namespace cast::overlay
+}

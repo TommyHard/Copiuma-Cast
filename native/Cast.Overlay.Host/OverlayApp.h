@@ -1,7 +1,6 @@
 // OverlayApp.h — CefApp хост-процесса.
 // Принудительно включает software-композитинг, чтобы кадры приходили в
 // CefRenderHandler::OnPaint (CPU-буфер BGRA), а не в OnAcceleratedPaint
-// (GPU-текстура) — это совпадает с нашим протоколом shared memory
 #pragma once
 
 #include "include/cef_app.h"
@@ -22,5 +21,4 @@ namespace cast {
         IMPLEMENT_REFCOUNTING(OverlayApp);
         DISALLOW_COPY_AND_ASSIGN(OverlayApp);
     };
-
 }

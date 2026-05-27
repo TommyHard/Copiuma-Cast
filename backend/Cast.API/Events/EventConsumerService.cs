@@ -1,30 +1,26 @@
-using System.Text;
-using System.Text.Json;
 using Cast.API.Data;
 using Cast.API.Domain;
-using Cast.API.Realtime;
-using Cast.Shared.GameBridge;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Text;
+using System.Text.Json;
 
 namespace Cast.API.Events;
 
 /// <summary>
-/// Фоновый консьюмер: читает события из RabbitMQ, журналирует их и доставляет
-/// стримеру по SignalR в виде <see cref="GameCommand"/>. Десктоп стримера
-/// получает команду и передаёт моду через GameBridge.
-///
-/// Очередь развязывает приём от доставки: всплески событий зрителей не нагружают
-/// хаб напрямую, можно масштабировать консьюмеров и переживать перезапуски
+/// Фоновый консьюмер журнала. Доставка команд стримеру происходит напрямую в
+/// <see cref="Realtime.RoomHub"/> (горячий путь), поэтому здесь остаётся только
+/// то, что можно делать асинхронно: запись в журнал событий, а в дальнейшем —
+/// аналитика и антиспам. Очередь развязывает приём от обработки: всплески
+/// событий не нагружают БД синхронно, обработку можно масштабировать и
+/// переживать перезапуски
 /// </summary>
 public sealed class EventConsumerService : BackgroundService
 {
     private readonly RabbitMqConnection _connection;
     private readonly RabbitMqOptions _options;
     private readonly IServiceProvider _services;
-    private readonly IHubContext<RoomHub> _hub;
     private readonly ILogger<EventConsumerService> _logger;
 
     private IModel? _channel;
@@ -33,13 +29,11 @@ public sealed class EventConsumerService : BackgroundService
         RabbitMqConnection connection,
         IOptions<RabbitMqOptions> options,
         IServiceProvider services,
-        IHubContext<RoomHub> hub,
         ILogger<EventConsumerService> logger)
     {
         _connection = connection;
         _options = options.Value;
         _services = services;
-        _hub = hub;
         _logger = logger;
     }
 
@@ -93,32 +87,26 @@ public sealed class EventConsumerService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка обработки события.");
+            _logger.LogError(ex, "Ошибка обработки события журнала.");
             _channel?.BasicAck(ea.DeliveryTag, multiple: false);
         }
     }
 
     private async Task ProcessAsync(EventMessage msg)
     {
-        using (var scope = _services.CreateScope())
+        using var scope = _services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CastDbContext>();
+        db.EventLog.Add(new EventLogEntry
         {
-            var db = scope.ServiceProvider.GetRequiredService<CastDbContext>();
-            db.EventLog.Add(new EventLogEntry
-            {
-                RoomId = msg.RoomId,
-                UserId = msg.UserId,
-                EventId = msg.EventId,
-                Username = msg.Username,
-                ArgsJson = msg.Args.Count > 0 ? JsonSerializer.Serialize(msg.Args) : null,
-                CostCoins = 0
-            });
-            await db.SaveChangesAsync();
-        }
-
-        var command = new GameCommand(msg.EventId, msg.Username) { Args = msg.Args };
-        await _hub.Clients
-            .Group(RoomHub.StreamerGroup(msg.RoomId))
-            .SendAsync("GameCommand", command);
+            RoomId = msg.RoomId,
+            UserId = msg.UserId,
+            EventId = msg.EventId,
+            Username = msg.Username,
+            ArgsJson = msg.Args.Count > 0 ? JsonSerializer.Serialize(msg.Args) : null,
+            CostCoins = msg.CostCoins,
+            MediaId = msg.MediaId
+        });
+        await db.SaveChangesAsync();
     }
 
     public override void Dispose()

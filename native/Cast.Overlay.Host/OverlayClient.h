@@ -35,7 +35,7 @@ namespace cast {
         // CefLifeSpanHandler
         void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
         void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
-        // Подавляем попапы/внешние окна: ссылку грузим в той же странице
+        // Подавляем popup/внешние окна: ссылку грузим в той же странице
         bool OnBeforePopup(CefRefPtr<CefBrowser> browser,
             CefRefPtr<CefFrame> frame,
             int popup_id,
@@ -63,7 +63,7 @@ namespace cast {
         SharedFrameWriter     m_writer;
         SharedControlReader   m_control;
         CefRefPtr<CefBrowser> m_browser;
-        // Последняя позиция курсора — нужна для координат click/wheel событий,
+        // Последняя позиция курсора — для координат click/wheel событий,
         // если они придут без свежего move
         int m_lastMouseX = 0;
         int m_lastMouseY = 0;
@@ -75,5 +75,4 @@ namespace cast {
         IMPLEMENT_REFCOUNTING(OverlayClient);
         DISALLOW_COPY_AND_ASSIGN(OverlayClient);
     };
-
 }

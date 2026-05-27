@@ -1,6 +1,6 @@
+using Cast.Shared.GameBridge;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Cast.Shared.GameBridge;
 
 namespace Cast.GameBridge;
 

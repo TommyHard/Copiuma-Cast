@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Authors>TommyHard</Authors>
+    <Copyright>https://github.com/TommyHard/Copiuma-Cast</Copyright>
   </PropertyGroup>
 
 </Project>

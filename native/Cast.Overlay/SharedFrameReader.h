@@ -1,6 +1,6 @@
 // SharedFrameReader.h — потребитель кадров оверлея (сторона DLL).
 // Открывает именованное отображение для текущего процесса игры и читает
-// кадры без «разрывов» по протоколу seqlock из SharedFrame.h
+// кадры без "разрывов" по протоколу seqlock из SharedFrame.h
 #pragma once
 
 #include <windows.h>
@@ -32,5 +32,4 @@ namespace cast {
         HANDLE            m_mapping = nullptr;
         ipc::FrameHeader* m_view = nullptr;
     };
-
 }

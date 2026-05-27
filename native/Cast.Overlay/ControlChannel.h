@@ -2,11 +2,9 @@
 //
 // Открывает именованное отображение "Local\\CopiumaCast.Control.<pid>" и
 // публикует в него размер игры, флаг видимости оверлея и события ввода.
-// Читает это CEF-хост (SharedControlReader). Все методы потокобезопасны на
-// уровне SPSC-кольца (единственный продюсер — игровой поток) и атомарного
-// seqlock размера
-#pragma once
+// Читает это CEF-хост (SharedControlReader)
 
+#pragma once
 #include <cstdint>
 #include "SharedControl.h"
 
@@ -20,8 +18,7 @@ namespace cast::overlay {
         static void Close();
         static bool IsOpen();
 
-        // Публикует размер бэкбуфера игры (seqlock). Вызывать при первом кадре
-        // и при Reset устройства
+        // Публикует размер бэкбуфера игры (seqlock)
         static void SetGameSize(uint32_t width, uint32_t height);
 
         // Публикует флаг видимости оверлея
@@ -31,5 +28,4 @@ namespace cast::overlay {
         // отбрасывается
         static void PushInput(const ipc::InputEvent& ev);
     };
-
 }

@@ -7,7 +7,6 @@
 namespace cast {
     namespace {
 
-        // Перезапускающая себя задача опроса обратного канала на UI-потоке
         class PollTask : public CefTask {
         public:
             explicit PollTask(CefRefPtr<OverlayClient> client) : client_(client) {}
@@ -17,7 +16,7 @@ namespace cast {
             IMPLEMENT_REFCOUNTING(PollTask);
         };
 
-        // Период опроса (~60 Гц). Достаточно для отзывчивого ввода и размера
+        // Период опроса (~60 Гц)
         constexpr int64_t kPollIntervalMs = 16;
 
     }
@@ -28,14 +27,12 @@ namespace cast {
         m_writer.Open(gamePid);
     }
 
-    void OverlayClient::GetViewRect(CefRefPtr<CefBrowser> /*browser*/, CefRect& rect)
+    void OverlayClient::GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect)
     {
-        // Размер off-screen «окна» браузера. Обновляется по обратному каналу
-        // (реальный размер бэкбуфера игры)
         rect = CefRect(0, 0, m_width, m_height);
     }
 
-    bool OverlayClient::GetScreenInfo(CefRefPtr<CefBrowser> /*browser*/, CefScreenInfo& info)
+    bool OverlayClient::GetScreenInfo(CefRefPtr<CefBrowser>, CefScreenInfo& info)
     {
         info.device_scale_factor = 1.0f;
         info.depth = 32;
@@ -46,14 +43,13 @@ namespace cast {
         return true;
     }
 
-    void OverlayClient::OnPaint(CefRefPtr<CefBrowser> /*browser*/, PaintElementType type,
-        const RectList& /*dirtyRects*/, const void* buffer,
+    void OverlayClient::OnPaint(CefRefPtr<CefBrowser>, PaintElementType type,
+        const RectList&, const void* buffer,
         int width, int height)
     {
-        if (type != PET_VIEW)   // PET_POPUP (выпадающие списки) пока пропускаем
+        if (type != PET_VIEW)
             return;
 
-        // CEF отдаёт BGRA, плотно упакованный: pitch = width * 4
         m_writer.Write(buffer, static_cast<uint32_t>(width),
             static_cast<uint32_t>(height),
             static_cast<uint32_t>(width) * 4);
@@ -63,11 +59,10 @@ namespace cast {
     {
         CEF_REQUIRE_UI_THREAD();
         m_browser = browser;
-        // Запускаем цикл опроса обратного канала
         CefPostDelayedTask(TID_UI, new PollTask(this), kPollIntervalMs);
     }
 
-    void OverlayClient::OnBeforeClose(CefRefPtr<CefBrowser> /*browser*/)
+    void OverlayClient::OnBeforeClose(CefRefPtr<CefBrowser>)
     {
         CEF_REQUIRE_UI_THREAD();
         m_browser = nullptr;
@@ -114,7 +109,7 @@ namespace cast {
 
         if (m_control.IsOpen())
         {
-            // Размер игры → подгоняем off-screen рендер 1:1
+            // Размер игры -> подгоняем off-screen рендер 1:1
             uint32_t w = 0, h = 0;
             if (m_control.ReadSize(w, h) &&
                 (static_cast<int>(w) != m_width || static_cast<int>(h) != m_height))
@@ -126,14 +121,13 @@ namespace cast {
             }
 
             // Фокус: по фронту открытия оверлея возвращаем фокус ввода в CEF.
-            // Без этого после ухода фокуса в другое окно (напр. внешний
-            // браузер) клавиатура/мышь в оверлее перестают работать
+            // Без этого после ухода фокуса в другое окно
             const bool visible = m_control.OverlayVisible();
             if (visible && !m_lastVisible && m_browser->GetHost())
                 m_browser->GetHost()->SetFocus(true);
             m_lastVisible = visible;
 
-            // События ввода → в браузер. Ограничиваем число за один проход,
+            // События ввода -> в браузер. Ограничиваем число за один проход,
             // чтобы поток поллинга не зацикливался при флуде move-событий
             ipc::InputEvent ev;
             int guard = 0;
@@ -175,7 +169,7 @@ namespace cast {
             cef_mouse_button_type_t btn = MBT_LEFT;
             if (ev.button == ipc::kMouseRight)       btn = MBT_RIGHT;
             else if (ev.button == ipc::kMouseMiddle) btn = MBT_MIDDLE;
-            host->SendMouseClickEvent(me, btn, ev.type == ipc::kInputMouseUp, /*clickCount*/ 1);
+            host->SendMouseClickEvent(me, btn, ev.type == ipc::kInputMouseUp, 1);
             break;
         }
         case ipc::kInputMouseWheel:
@@ -210,5 +204,4 @@ namespace cast {
             break;
         }
     }
-
 }

@@ -1,63 +1,95 @@
-﻿<Window x:Class="Cast.Desktop.MainWindow"
+<Window x:Class="Cast.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Cast.Desktop"
+        xmlns:vm="clr-namespace:Cast.Desktop.ViewModels"
+        xmlns:views="clr-namespace:Cast.Desktop.Views"
         mc:Ignorable="d"
-        Title="Copiuma.Cast — GameBridge тест" Height="560" Width="860">
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="160"/>
-        </Grid.RowDefinitions>
+        Title="Copiuma.Cast" Height="680" Width="960"
+        Background="{DynamicResource BgPrimaryBrush}"
+        WindowStartupLocation="CenterScreen">
 
-        <!-- Манифест -->
-        <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,8">
-            <TextBlock Text="Манифест:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <Button x:Name="LoadButton" Content="Загрузить" Width="90" DockPanel.Dock="Right"
-                    Margin="8,0,0,0" Click="LoadButton_Click"/>
-            <Button x:Name="BrowseButton" Content="Обзор…" Width="80" DockPanel.Dock="Right"
-                    Click="BrowseButton_Click"/>
-            <TextBox x:Name="ManifestPathBox" VerticalContentAlignment="Center"/>
-        </DockPanel>
+    <Window.Resources>
+        <!-- VM → View маппинг -->
+        <DataTemplate DataType="{x:Type vm:ModManagerViewModel}">
+            <views:ModManagerView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:RoomViewModel}">
+            <views:RoomView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:LaunchViewModel}">
+            <views:LaunchView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DebugViewModel}">
+            <views:DebugView/>
+        </DataTemplate>
+    </Window.Resources>
 
-        <!-- Статус -->
-        <TextBlock x:Name="StatusText" Grid.Row="1" Margin="0,0,0,8"
-                   Text="Манифест не загружен." Foreground="#555"/>
+    <Grid>
+        <!-- Login screen (shown when not logged in) -->
+        <views:LoginView DataContext="{Binding}"
+                         Visibility="{Binding IsLoggedIn, Converter={StaticResource InvertBoolToVis}}"/>
 
-        <!-- Список событий -->
-        <ListBox x:Name="EventsList" Grid.Row="2" Margin="0,0,0,8">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Width="220"/>
-                        <TextBlock Text="{Binding Id}" Foreground="#888" Width="180"/>
-                        <TextBlock Text="{Binding Category}" Foreground="#888" Width="120"/>
-                        <TextBlock Text="{Binding CostCoins, StringFormat='coins: {0}'}" Width="80"/>
-                        <TextBlock Text="{Binding CooldownMs, StringFormat='cd: {0} ms'}"/>
+        <!-- Main shell (shown when logged in) -->
+        <Grid Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="{DynamicResource BgSecondaryBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <!-- Top: brand -->
+                    <StackPanel DockPanel.Dock="Top" Margin="16,16,16,24">
+                        <TextBlock Text="{DynamicResource AppTitle}" FontSize="18" FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentBrush}"/>
+                        <TextBlock Text="{Binding Username}" FontSize="12"
+                                   Foreground="{DynamicResource FgSecondaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
 
-        <!-- Отправка -->
-        <DockPanel Grid.Row="3" LastChildFill="True" Margin="0,0,0,8">
-            <TextBlock Text="Ник:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <TextBox x:Name="UsernameBox" Width="140" Text="TestViewer" DockPanel.Dock="Left"
-                     VerticalContentAlignment="Center" Margin="0,0,12,0"/>
-            <Button x:Name="FireButton" Content="Отправить событие" Width="160" DockPanel.Dock="Right"
-                    Margin="8,0,0,0" Click="FireButton_Click"/>
-            <TextBlock Text="Параметры (key=value;key=value):" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <TextBox x:Name="ArgsBox" VerticalContentAlignment="Center"/>
-        </DockPanel>
+                    <!-- Bottom: logout + lang -->
+                    <StackPanel DockPanel.Dock="Bottom" Margin="8,0,8,12">
+                        <Separator Background="{DynamicResource BorderBrush}" Margin="4,0,4,8"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
+                            <Button Content="EN" Style="{StaticResource SecondaryButton}"
+                                    Command="{Binding SwitchLanguageCommand}" CommandParameter="en"
+                                    Padding="8,3" Margin="0,0,4,0" FontSize="11"/>
+                            <Button Content="RU" Style="{StaticResource SecondaryButton}"
+                                    Command="{Binding SwitchLanguageCommand}" CommandParameter="ru"
+                                    Padding="8,3" FontSize="11"/>
+                        </StackPanel>
+                        <Button Content="{DynamicResource Logout}" Style="{StaticResource SecondaryButton}"
+                                Command="{Binding LogoutCommand}" HorizontalAlignment="Stretch"
+                                Padding="8,6" FontSize="12"/>
+                    </StackPanel>
 
-        <!-- Лог -->
-        <TextBox x:Name="LogBox" Grid.Row="4" IsReadOnly="True" FontFamily="Consolas"
-                 VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
-                 Background="#1e1e1e" Foreground="#d4d4d4"/>
+                    <!-- Nav items -->
+                    <StackPanel Margin="8,0">
+                        <RadioButton Content="{DynamicResource NavMods}" Style="{StaticResource NavButton}"
+                                     GroupName="Nav"
+                                     IsChecked="{Binding SelectedNav, Converter={StaticResource NavCheck}, ConverterParameter=mods}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="mods"/>
+                        <RadioButton Content="{DynamicResource NavRoom}" Style="{StaticResource NavButton}"
+                                     GroupName="Nav"
+                                     IsChecked="{Binding SelectedNav, Converter={StaticResource NavCheck}, ConverterParameter=room}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="room"/>
+                        <RadioButton Content="{DynamicResource NavLaunch}" Style="{StaticResource NavButton}"
+                                     GroupName="Nav"
+                                     IsChecked="{Binding SelectedNav, Converter={StaticResource NavCheck}, ConverterParameter=launch}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="launch"/>
+                        <RadioButton Content="{DynamicResource NavDebug}" Style="{StaticResource NavButton}"
+                                     GroupName="Nav"
+                                     IsChecked="{Binding SelectedNav, Converter={StaticResource NavCheck}, ConverterParameter=debug}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="debug"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Content area -->
+            <ContentControl Grid.Column="1" Content="{Binding CurrentPage}"/>
+        </Grid>
     </Grid>
 </Window>

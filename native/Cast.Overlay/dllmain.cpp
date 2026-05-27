@@ -1,8 +1,4 @@
 // dllmain.cpp : точка входа DLL оверлея Cast.Overlay
-//
-// внутри DllMain удерживается loader lock, поэтому здесь
-// НЕЛЬЗЯ делать ничего тяжёлого. Вся инициализация выносится в отдельный
-// поток
 #include "pch.h"
 #include "Overlay.h"
 
@@ -10,7 +6,7 @@
 
 namespace {
 
-    DWORD WINAPI InitThread(LPVOID /*param*/)
+    DWORD WINAPI InitThread(LPVOID)
     {
         cast::overlay::Initialize();
         return 0;
@@ -20,7 +16,7 @@ namespace {
 
 BOOL APIENTRY DllMain(HMODULE hModule,
     DWORD   ul_reason_for_call,
-    LPVOID  /*lpReserved*/)
+    LPVOID)
 {
     switch (ul_reason_for_call)
     {

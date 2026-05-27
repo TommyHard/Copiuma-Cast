@@ -1,5 +1,5 @@
-// Logger.h — потокобезопасный файловый логгер
-// Инжектированную DLL невозможно отлаживать "вслепую", весь
+// Logger.h — файловый логгер
+// Инжектированную DLL невозможно отлаживать вслепую, весь
 // жизненный цикл оверлея пишется в %TEMP%\CopiumaCast\overlay.log
 #pragma once
 
@@ -17,8 +17,6 @@ namespace cast {
 
 }
 
-// Удобные макросы. Используют std::format (C++20), поэтому строку формата
-// можно писать как "x = {}, y = {}"
 #define CAST_LOG_INFO(...)  ::cast::Logger::Write("INFO",  std::format(__VA_ARGS__))
 #define CAST_LOG_WARN(...)  ::cast::Logger::Write("WARN",  std::format(__VA_ARGS__))
 #define CAST_LOG_ERROR(...) ::cast::Logger::Write("ERROR", std::format(__VA_ARGS__))

@@ -1,11 +1,11 @@
+using Cast.Shared.GameBridge;
 using System.Net.Sockets;
 using System.Text;
-using Cast.Shared.GameBridge;
 
 namespace Cast.GameBridge.Transports;
 
 /// <summary>
-/// Основной транспорт: loopback-сокет к моду игры (GTA SA слушает 127.0.0.1:14888).
+/// Основной транспорт: loopback-сокет к моду игры (GTA SA слушает 127.0.0.1:14888)
 /// Команды шлются построчно (строка + перевод строки). Поддерживает ленивое
 /// подключение и переподключение: если мод ещё не поднялся или связь оборвалась,
 /// следующая отправка попытается переподключиться

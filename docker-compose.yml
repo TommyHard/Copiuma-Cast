@@ -1,7 +1,7 @@
-# Инфраструктура для Copiuma.Cast (локальная разработка).
-# Поднять:  docker compose -f deploy/docker-compose.yml up -d
-# Совпадает с настройками backend/Cast.API/appsettings.json.
 services:
+  # ==========================================
+  # ИНФРАСТРУКТУРА
+  # ==========================================
   postgres:
     image: postgres:16-alpine
     environment:
@@ -24,8 +24,8 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # веб-консоль управления
+      - "5672:5672"     
+      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -49,8 +49,8 @@ services:
       MINIO_ROOT_USER: cast
       MINIO_ROOT_PASSWORD: cast12345
     ports:
-      - "9000:9000"     # S3 API
-      - "9001:9001"     # веб-консоль
+      - "9000:9000"     
+      - "9001:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -58,6 +58,69 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ==========================================
+  # БЭКЕНД
+  # ==========================================
+  cast-api:
+    build:
+      context: .
+      dockerfile: backend/Cast.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=copiuma_cast;Username=cast;Password=cast
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__User=guest
+      - RabbitMq__Password=guest
+      - Storage__Endpoint=http://minio:9000
+      - Storage__PublicBaseUrl=http://localhost:5208/files
+      - Storage__AccessKey=cast
+      - Storage__SecretKey=cast12345
+      - Jwt__Key=SomeSuperSecretKeyForLocalDevelopment123!
+      - MediaPipeline__WorkerSecret=LocalWorkerSecret123
+      - Seed__AdminPassword=Admin123!
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  cast-worker:
+    build:
+      context: .
+      dockerfile: backend/Cast.MediaProcessing.Worker/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=copiuma_cast;Username=cast;Password=cast
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__User=guest
+      - RabbitMq__Password=guest
+      - Storage__Endpoint=minio:9000
+      - Storage__AccessKey=cast
+      - Storage__SecretKey=cast12345
+      - Callback__BaseUrl=http://cast-api:8080
+      - Callback__WorkerSecret=LocalWorkerSecret123
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      cast-api:
+        condition: service_started
+
+  cast-gateway:
+    build:
+      context: .
+      dockerfile: gateway/Cast.Gateway/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5208:8080"
+    depends_on:
+      - cast-api
 
 volumes:
   pgdata:

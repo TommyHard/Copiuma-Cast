@@ -13,7 +13,6 @@
 namespace cast {
     namespace {
 
-        // Стандартные индексы методов в vtable IDirect3DDevice9
         constexpr int kVTableIndex_Reset = 16;
         constexpr int kVTableIndex_EndScene = 42;
 
@@ -46,18 +45,17 @@ namespace cast {
             __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
         }
 
-        // Ищет главное окно текущего процесса (окно игры). Привязка временного
-        // // устройства к реальному окну игры надёжнее, чем к скрытому окну
+        // Ищет главное окно текущего процесса (окно игры)
         BOOL CALLBACK EnumWndProc(HWND hwnd, LPARAM lParam)
         {
             DWORD pid = 0;
             GetWindowThreadProcessId(hwnd, &pid);
             if (pid == GetCurrentProcessId() &&
-                GetWindow(hwnd, GW_OWNER) == nullptr &&  // только top-level окно
+                GetWindow(hwnd, GW_OWNER) == nullptr &&  // top-level окно
                 IsWindowVisible(hwnd))
             {
                 *reinterpret_cast<HWND*>(lParam) = hwnd;
-                return FALSE; // нашли — останавливаем перечисление
+                return FALSE;
             }
             return TRUE;
         }
@@ -69,11 +67,8 @@ namespace cast {
             return found;
         }
 
-        // Окно игры (его клиентская область = система координат курсора в WM_*)
         HWND g_gameWnd = nullptr;
 
-        // Возвращает HWND окна игры (кэшируем). Берём окно фокуса устройства,
-        // затем главное окно процесса, затем активное окно
         HWND ResolveGameWindow(IDirect3DDevice9* device)
         {
             if (g_gameWnd && IsWindow(g_gameWnd))
@@ -89,10 +84,10 @@ namespace cast {
             return hwnd;
         }
 
-        // Сообщает хосту размер КЛИЕНТСКОЙ ОБЛАСТИ окна игры. Именно в этих
+        // Сообщает хосту размер КЛИЕНТСКОЙ ОБЛАСТИ окна игры. В этих
         // координатах WndProc отдаёт позицию мыши, поэтому CEF-страница должна
         // рендериться в этом же размере — тогда клики совпадают пиксель-в-пиксель
-        // и масштаб ровно 1:1. SetGameSize дедуплицирует, так что зовём каждый кадр
+        // и масштаб ровно 1:1
         void MaybeReportGameSize(IDirect3DDevice9* device)
         {
             HWND hwnd = ResolveGameWindow(device);
@@ -107,7 +102,7 @@ namespace cast {
             }
         }
 
-        // Один раз ставит WndProc-хук на окно игры. Делаем это здесь, в EndScene,
+        // Один раз ставит WndProc-хук на окно игры. Делаем это в EndScene,
         // т.к. этот код исполняется в потоке игры, который владеет окном —
         // корректный поток для SetWindowLongPtr
         void EnsureInputHook(IDirect3DDevice9* device)
@@ -121,7 +116,12 @@ namespace cast {
         // Хук EndScene: вызывается игрой в конце каждого кадра
         HRESULT STDMETHODCALLTYPE HookedEndScene(IDirect3DDevice9* device)
         {
-            static bool s_renderFault = false; // при сбое отключаем отрисовку насовсем
+            static bool s_renderFault = false;
+
+            if (device->TestCooperativeLevel() != D3D_OK) 
+            {
+                return g_origEndScene(device);
+            }
 
             EnsureInputHook(device);
             MaybeReportGameSize(device);
@@ -160,7 +160,6 @@ namespace cast {
         // Создаёт временное устройство и достаёт адреса EndScene и Reset из его vtable
         bool AcquireDeviceMethods(void** outEndScene, void** outReset)
         {
-            // Запасное скрытое окно на случай, если окно игры ещё не найдено
             WNDCLASSEXW wc = { sizeof(WNDCLASSEXW) };
             wc.lpfnWndProc = DefWindowProcW;
             wc.hInstance = GetModuleHandleW(nullptr);
@@ -177,8 +176,6 @@ namespace cast {
             bool ok = false;
             if (IDirect3D9* d3d = Direct3DCreate9(D3D_SDK_VERSION))
             {
-                // Явно берём текущий формат экрана — без этого часть драйверов и
-                // d3d9-обёрток отвергает создание устройства с E_INVALIDARG
                 D3DDISPLAYMODE dm = {};
                 d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &dm);
 
@@ -190,8 +187,6 @@ namespace cast {
                 pp.BackBufferHeight = 1;
                 pp.BackBufferFormat = dm.Format;
 
-                // Перебираем режимы обработки вершин: драйвер может не
-                // поддерживать тот или иной
                 const DWORD behaviors[] = {
                     D3DCREATE_HARDWARE_VERTEXPROCESSING,
                     D3DCREATE_SOFTWARE_VERTEXPROCESSING,
@@ -236,12 +231,6 @@ namespace cast {
 
     bool D3D9Hook::Initialize()
     {
-        if (MH_Initialize() != MH_OK)
-        {
-            CAST_LOG_ERROR("MH_Initialize failed");
-            return false;
-        }
-
         void* pEndScene = nullptr;
         void* pReset = nullptr;
         if (!AcquireDeviceMethods(&pEndScene, &pReset))

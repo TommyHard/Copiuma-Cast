@@ -3,7 +3,6 @@
 #include "Overlay.h"
 #include "ControlChannel.h"
 #include "Logger.h"
-
 #include <MinHook.h>
 #include <windowsx.h>
 #include <atomic>
@@ -15,65 +14,110 @@ namespace cast::overlay {
         HWND    g_targetWnd = nullptr;
         WNDPROC g_origWndProc = nullptr;
 
-        // Горячая клавиша показа/скрытия оверлея
+        // Горячая клавиша оверлея
         constexpr int kToggleKey = VK_F8;
 
         // --- Хуки курсорных API --------------------------------------------
         // Игры с обзором мышью каждый кадр возвращают курсор в центр
         // через SetCursorPos и/или зажимают его ClipCursor. Подклассинг WndProc
         // это не перехватывает (API дёргаются напрямую), поэтому пока оверлей
-        // открыт, мы перехватываем сами функции и делаем их no-op — курсор
-        // остаётся там, куда его привёл пользователь, а камера не "уезжает"
+        // открыт, перехватываем сами функции и делаем их no-op — курсор
+        // остаётся там, куда его привёл пользователь
         using SetCursorPos_t = BOOL(WINAPI*)(int, int);
+        using GetCursorPos_t = BOOL(WINAPI*)(LPPOINT);
         using ClipCursor_t = BOOL(WINAPI*)(const RECT*);
+        using GetRawInputData_t = UINT(WINAPI*)(HRAWINPUT, UINT, LPVOID, PUINT, UINT);
 
         SetCursorPos_t g_origSetCursorPos = nullptr;
+        GetCursorPos_t g_origGetCursorPos = nullptr;
         ClipCursor_t   g_origClipCursor = nullptr;
+        GetRawInputData_t g_origGetRawInputData = nullptr;
+
         bool           g_cursorApiHooked = false;
+        POINT          g_lockedCursorPos = { 0, 0 };
 
         BOOL WINAPI HookedSetCursorPos(int x, int y)
         {
-            if (IsVisible())
-                return TRUE; // глушим рецентрирование, пока оверлей открыт
+            if (IsVisible()) {
+                // Игра пытается отцентрировать курсор. 
+                // Запоминаем этот "центр", чтобы потом отправить в GetCursorPos
+                g_lockedCursorPos.x = x;
+                g_lockedCursorPos.y = y;
+                return TRUE; // Блокируем перемещение курсора в Windows
+            }
             return g_origSetCursorPos ? g_origSetCursorPos(x, y) : FALSE;
+        }
+
+        BOOL WINAPI HookedGetCursorPos(LPPOINT lpPoint)
+        {
+            if (IsVisible() && lpPoint) {
+                *lpPoint = g_lockedCursorPos;
+                return TRUE;
+            }
+            return g_origGetCursorPos ? g_origGetCursorPos(lpPoint) : FALSE;
         }
 
         BOOL WINAPI HookedClipCursor(const RECT* rect)
         {
             if (IsVisible())
-                return g_origClipCursor ? g_origClipCursor(nullptr) : FALSE; // снимаем захват
+                return g_origClipCursor ? g_origClipCursor(nullptr) : FALSE;
             return g_origClipCursor ? g_origClipCursor(rect) : FALSE;
         }
 
-        // Ставит хуки на user32 один раз. MinHook к этому моменту уже
-        // инициализирован в D3D9Hook::Initialize
+        // Хук на Raw Input
+        UINT WINAPI HookedGetRawInputData(HRAWINPUT hRawInput, UINT uiCommand, LPVOID pData, PUINT pcbSize, UINT cbSizeHeader)
+        {
+            UINT ret = g_origGetRawInputData ? g_origGetRawInputData(hRawInput, uiCommand, pData, pcbSize, cbSizeHeader) : 0;
+
+            // Если оверлей видим, запрос успешен и игра запрашивает сами данные (RID_INPUT)
+            if (IsVisible() && pData && ret != (UINT)-1 && uiCommand == RID_INPUT)
+            {
+                RAWINPUT* raw = static_cast<RAWINPUT*>(pData);
+
+                if (raw->header.dwType == RIM_TYPEMOUSE)
+                {
+                    // Обнуляем дельту движения (чтобы камера не вращалась)
+                    raw->data.mouse.lLastX = 0;
+                    raw->data.mouse.lLastY = 0;
+                    // Обнуляем нажатия кнопок мыши (чтобы оружие не стреляло)
+                    raw->data.mouse.usButtonFlags = 0;
+                }
+                else if (raw->header.dwType == RIM_TYPEKEYBOARD)
+                {
+                    raw->data.keyboard.MakeCode = 0;
+                    raw->data.keyboard.VKey = 0;
+                }
+            }
+            return ret;
+        }
+
         void InstallCursorApiHooks()
         {
             if (g_cursorApiHooked)
                 return;
 
             const bool ok =
-                MH_CreateHookApi(L"user32", "SetCursorPos", &HookedSetCursorPos,
-                    reinterpret_cast<void**>(&g_origSetCursorPos)) == MH_OK &&
-                MH_CreateHookApi(L"user32", "ClipCursor", &HookedClipCursor,
-                    reinterpret_cast<void**>(&g_origClipCursor)) == MH_OK;
+                MH_CreateHookApi(L"user32", "SetCursorPos", &HookedSetCursorPos, reinterpret_cast<void**>(&g_origSetCursorPos)) == MH_OK &&
+                MH_CreateHookApi(L"user32", "GetCursorPos", &HookedGetCursorPos, reinterpret_cast<void**>(&g_origGetCursorPos)) == MH_OK &&
+                MH_CreateHookApi(L"user32", "ClipCursor", &HookedClipCursor, reinterpret_cast<void**>(&g_origClipCursor)) == MH_OK &&
+                MH_CreateHookApi(L"user32", "GetRawInputData", &HookedGetRawInputData, reinterpret_cast<void**>(&g_origGetRawInputData)) == MH_OK;
 
             if (!ok)
             {
-                CAST_LOG_WARN("Не удалось создать хуки курсорных API (мышь может рецентрироваться)");
+                CAST_LOG_WARN("Не удалось создать хуки курсорных API");
                 return;
             }
 
             MH_EnableHook(MH_ALL_HOOKS);
             g_cursorApiHooked = true;
-            CAST_LOG_INFO("Курсорные хуки установлены (SetCursorPos, ClipCursor)");
+            CAST_LOG_INFO("Курсорные хуки установлены (включая Raw Input)");
         }
 
         int g_cursorIncrements = 0;
 
         void ShowSystemCursor()
         {
-            ClipCursor(nullptr); // снимаем возможный захват курсора игрой
+            ClipCursor(nullptr);
             int count = ShowCursor(TRUE);
             ++g_cursorIncrements;
             while (count < 0)
@@ -83,7 +127,6 @@ namespace cast::overlay {
             }
         }
 
-        // Откатывает инкременты, возвращая счётчик курсора к состоянию игры
         void RestoreCursor()
         {
             while (g_cursorIncrements > 0)
@@ -93,10 +136,7 @@ namespace cast::overlay {
             }
         }
 
-        // Синтезирует WM_KEYUP для всех зажатых клавиш в исходный WndProc игры.
-        // Нужно при открытии оверлея: мы начинаем глотать ввод, и если игра
-        // читает движение оконными сообщениями, она не увидит отпускания клавиши
-        // (например W) и персонаж "залипнет"
+        // Синтезирует WM_KEYUP для всех зажатых клавиш в исходный WndProc игры
         void ReleaseHeldKeys()
         {
             if (!g_origWndProc || !g_targetWnd)
@@ -116,13 +156,10 @@ namespace cast::overlay {
             }
         }
 
-        // true — сообщение является вводом, который при открытом оверлее
-        // не должен доходить до игры
         bool IsInputMessage(UINT msg)
         {
             switch (msg)
             {
-                // мышь
             case WM_MOUSEMOVE:
             case WM_LBUTTONDOWN: case WM_LBUTTONUP: case WM_LBUTTONDBLCLK:
             case WM_RBUTTONDOWN: case WM_RBUTTONUP: case WM_RBUTTONDBLCLK:
@@ -133,7 +170,7 @@ namespace cast::overlay {
             case WM_KEYDOWN:  case WM_KEYUP:
             case WM_SYSKEYDOWN: case WM_SYSKEYUP:
             case WM_CHAR: case WM_SYSCHAR: case WM_DEADCHAR: case WM_UNICHAR:
-                // raw input (DirectInput/RawInput частично ходит и сюда)
+                // raw input (DirectInput/RawInput)
             case WM_INPUT:
                 return true;
             default:
@@ -156,7 +193,7 @@ namespace cast::overlay {
 
         // Транслирует оконное сообщение ввода в событие обратного канала и кладёт
         // его в кольцо для CEF-хоста. Координаты — клиентские пиксели окна
-        // (после resize в хосте они совпадают с координатами кадра CEF)
+        // (после resize в хосте совпадают с координатами кадра CEF)
         void TranslateAndPush(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             ipc::InputEvent ev = {};
@@ -217,7 +254,6 @@ namespace cast::overlay {
 
         LRESULT CALLBACK HookedWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
-            // Горячая клавиша: реагируем по фронту нажатия
             if (msg == WM_KEYDOWN && wParam == kToggleKey && (lParam & (1 << 30)) == 0)
             {
                 ToggleVisible();
@@ -228,16 +264,12 @@ namespace cast::overlay {
             {
                 if (msg == WM_SETCURSOR)
                 {
-                    // Сами ставим стрелку и сообщаем системе, что обработали —
-                    // иначе игра вернёт свой (часто скрытый) курсор
                     SetCursor(LoadCursorW(nullptr, IDC_ARROW));
                     return TRUE;
                 }
 
                 if (IsInputMessage(msg))
                 {
-                    // Транслируем событие в CEF-хост по обратному каналу и
-                    // НЕ пропускаем его в игру (ввод принадлежит оверлею)
                     TranslateAndPush(hwnd, msg, wParam, lParam);
                     return 0;
                 }
@@ -270,10 +302,8 @@ namespace cast::overlay {
         g_active.store(true, std::memory_order_release);
         CAST_LOG_INFO("InputHook installed (hwnd={})", reinterpret_cast<void*>(hwnd));
 
-        InstallCursorApiHooks(); // освобождаем курсор от рецентрирования игрой
+        InstallCursorApiHooks();
 
-        // Если оверлей уже видим к моменту установки — сразу применяем курсор
-        // и снимаем возможные зажатые клавиши
         if (IsVisible())
         {
             ShowSystemCursor();
@@ -304,15 +334,17 @@ namespace cast::overlay {
     void InputHook::OnVisibilityChanged(bool visible)
     {
         if (!g_active.load(std::memory_order_acquire))
-            return; // окно ещё не подклассено — курсором не управляем
+            return;
 
         if (visible)
         {
+            if (g_origGetCursorPos) g_origGetCursorPos(&g_lockedCursorPos);
+            else GetCursorPos(&g_lockedCursorPos);
+
             ShowSystemCursor();
-            ReleaseHeldKeys(); // снимаем "залипшие" клавиши движения
+            ReleaseHeldKeys();
         }
         else
             RestoreCursor();
     }
-
 }

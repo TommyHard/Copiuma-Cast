@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "SharedFrameReader.h"
 #include "Logger.h"
-
 #include <cstring>
 
 namespace cast {
@@ -11,8 +10,7 @@ namespace cast {
         char name[128];
         ipc::MakeMappingName(name, sizeof(name), gamePid);
 
-        // CreateFileMapping создаёт отображение или открывает уже существующее —
-        // неважно, кто стартовал первым (DLL или хост)
+        // CreateFileMapping создаёт отображение или открывает уже существующее
         m_mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
             0, ipc::kSharedSize, name);
         if (!m_mapping)
@@ -104,5 +102,4 @@ namespace cast {
         outHeight = h;
         return true;
     }
-
 }

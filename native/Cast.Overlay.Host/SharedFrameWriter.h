@@ -16,12 +16,10 @@ namespace cast {
         void Close();
         bool IsOpen() const { return m_view != nullptr; }
 
-        // Опубликовать кадр. bgra — буфер BGRA8 размером height*srcPitch байт
         void Write(const void* bgra, uint32_t width, uint32_t height, uint32_t srcPitch);
 
     private:
         HANDLE            m_mapping = nullptr;
         ipc::FrameHeader* m_view = nullptr;
     };
-
 }

@@ -20,7 +20,7 @@ dist/
 # --- IDE ---
 .idea/
 .vscode/
-mods/
+ModFiles/
 
 # --- Docker volumes / local data ---
 .data/

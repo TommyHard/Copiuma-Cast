@@ -58,5 +58,4 @@ namespace cast {
 
         InterlockedIncrement(&m_view->sequence);
     }
-
 }

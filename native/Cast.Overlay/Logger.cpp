@@ -10,7 +10,7 @@ namespace cast {
         std::mutex    g_mutex;
         std::ofstream g_file;
 
-        // Путь к лог-файлу: %TEMP%\CopiumaCast\overlay.log
+        // Path Log-файл: %TEMP%\CopiumaCast\overlay.log
         std::wstring ResolveLogPath()
         {
             wchar_t temp[MAX_PATH] = {};

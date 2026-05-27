@@ -24,5 +24,10 @@ public sealed class EventLogEntry
     /// </summary>
     public long CostCoins { get; set; }
 
+    /// <summary>
+    /// Прикреплённое к событию медиа (для популярности медиа)
+    /// </summary>
+    public Guid? MediaId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

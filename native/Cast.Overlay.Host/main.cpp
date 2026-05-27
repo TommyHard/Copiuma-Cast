@@ -1,21 +1,20 @@
 // main.cpp — точка входа CEF-хоста оверлея
 //
 // Один и тот же exe работает и как основной (browser) процесс, и как
-// суб-процессы CEF (render/gpu/utility) — это обеспечивает CefExecuteProcess.
+// суб-процессы CEF (render/gpu/utility)
 //
 // Аргументы:
 //   --game-pid=<pid>   PID процесса игры (для имени shared memory). Обязателен.
 //   --url=<url>        Адрес React-интерфейса. По умолчанию dev-сервер Vite.
 //   --width=<px>       Ширина off-screen рендера (по умолчанию 1280).
 //   --height=<px>      Высота (по умолчанию 720)
+
 #include <windows.h>
 #include <cstdlib>
 #include <string>
-
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
-
 #include "OverlayApp.h"
 #include "OverlayClient.h"
 

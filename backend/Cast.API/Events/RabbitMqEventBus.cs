@@ -1,5 +1,5 @@
-using System.Text.Json;
 using RabbitMQ.Client;
+using System.Text.Json;
 
 namespace Cast.API.Events;
 

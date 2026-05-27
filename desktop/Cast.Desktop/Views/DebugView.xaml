@@ -1,0 +1,73 @@
+<UserControl x:Class="Cast.Desktop.Views.DebugView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="600"
+             Loaded="OnLoaded">
+    <Grid Margin="24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="160"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{DynamicResource DebugTitle}" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource FgPrimaryBrush}"/>
+            <TextBlock Text="{DynamicResource DebugSubtitle}" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+        </StackPanel>
+
+        <!-- Status -->
+        <TextBlock Grid.Row="1" Text="{Binding StatusText}" FontSize="12"
+                   Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,8"/>
+
+        <!-- Event list -->
+        <ListBox Grid.Row="2" ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}"
+                 Margin="0,0,0,8" Background="{DynamicResource BgTertiaryBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Width="200"
+                                   Foreground="{DynamicResource FgPrimaryBrush}"/>
+                        <TextBlock Text="{Binding Id}" Width="160"
+                                   Foreground="{DynamicResource FgMutedBrush}"/>
+                        <TextBlock Text="{Binding Category}" Width="100"
+                                   Foreground="{DynamicResource FgMutedBrush}"/>
+                        <TextBlock Foreground="{DynamicResource FgSecondaryBrush}">
+                            <Run Text="coins:"/><Run Text="{Binding CostCoins}"/>
+                            <Run Text=" cd:"/><Run Text="{Binding CooldownMs}"/><Run Text="ms"/>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Fire controls -->
+        <DockPanel Grid.Row="3" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource DebugUsername}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource FgSecondaryBrush}" Margin="0,0,8,0"/>
+            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Width="130"
+                     DockPanel.Dock="Left" VerticalContentAlignment="Center" Margin="0,0,12,0"/>
+            <Button Content="{DynamicResource DebugFire}" DockPanel.Dock="Right"
+                    Style="{StaticResource AccentButton}" Command="{Binding FireCommand}"
+                    Padding="14,6" Margin="8,0,0,0"/>
+            <TextBlock Text="{DynamicResource DebugParams}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource FgSecondaryBrush}" Margin="0,0,8,0"/>
+            <TextBox Text="{Binding ArgsText, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalContentAlignment="Center"/>
+        </DockPanel>
+
+        <!-- Log -->
+        <ListBox Grid.Row="4" ItemsSource="{Binding Log}"
+                 Background="{DynamicResource BgTertiaryBrush}"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}" FontFamily="Consolas" FontSize="12"/>
+    </Grid>
+</UserControl>

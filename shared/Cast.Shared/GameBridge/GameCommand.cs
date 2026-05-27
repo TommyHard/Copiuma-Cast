@@ -18,9 +18,14 @@ public sealed class GameCommand
     public string Username { get; set; } = string.Empty;
 
     /// <summary>
-    /// Параметры события (имя → значение). Для беспараметрических — пусто
+    /// Параметры события (имя -> значение). Для беспараметрических — пусто
     /// </summary>
     public Dictionary<string, string> Args { get; set; } = new();
+
+    /// <summary>
+    /// Прикреплённое медиа для воспроизведения (опционально)
+    /// </summary>
+    public MediaPlayback? Media { get; set; }
 
     public GameCommand() { }
 

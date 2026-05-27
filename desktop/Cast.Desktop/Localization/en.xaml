@@ -1,0 +1,70 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- App -->
+    <sys:String x:Key="AppTitle">Copiuma.Cast</sys:String>
+    <sys:String x:Key="Logout">Log out</sys:String>
+
+    <!-- Nav -->
+    <sys:String x:Key="NavMods">Mods</sys:String>
+    <sys:String x:Key="NavRoom">Room</sys:String>
+    <sys:String x:Key="NavLaunch">Launch</sys:String>
+    <sys:String x:Key="NavDebug">Debug</sys:String>
+
+    <!-- Login -->
+    <sys:String x:Key="LoginTitle">Sign in to Copiuma.Cast</sys:String>
+    <sys:String x:Key="LoginSubtitle">Authorization will open in your browser</sys:String>
+    <sys:String x:Key="LoginButton">Sign in via Browser</sys:String>
+    <sys:String x:Key="LoginProgress">Waiting for authorization...</sys:String>
+
+    <!-- Mod Manager -->
+    <sys:String x:Key="ModsTitle">Mod Manager</sys:String>
+    <sys:String x:Key="ModsRefresh">Refresh</sys:String>
+    <sys:String x:Key="ModsInstallAll">Install All</sys:String>
+    <sys:String x:Key="ModsInstallLibs">Libraries Only</sys:String>
+    <sys:String x:Key="ModsInstallMod">Mod Only</sys:String>
+    <sys:String x:Key="ModsUninstall">Uninstall</sys:String>
+    <sys:String x:Key="ModsVerify">Verify Integrity</sys:String>
+    <sys:String x:Key="ModsGameDir">Game directory:</sys:String>
+    <sys:String x:Key="ModsBrowse">Browse...</sys:String>
+    <sys:String x:Key="ModsNotInstalled">Not installed</sys:String>
+    <sys:String x:Key="ModsInstalled">Installed</sys:String>
+    <sys:String x:Key="ModsIntegrityOk">Integrity OK</sys:String>
+    <sys:String x:Key="ModsIntegrityFail">Integrity check failed</sys:String>
+    <sys:String x:Key="ModsInstalling">Installing...</sys:String>
+
+    <!-- Room -->
+    <sys:String x:Key="RoomTitle">Room Management</sys:String>
+    <sys:String x:Key="RoomCreate">Create Room</sys:String>
+    <sys:String x:Key="RoomClose">Close Room</sys:String>
+    <sys:String x:Key="RoomName">Room name:</sys:String>
+    <sys:String x:Key="RoomGame">Game:</sys:String>
+    <sys:String x:Key="RoomViewerLimit">Viewer limit (0 = no limit):</sys:String>
+    <sys:String x:Key="RoomCode">Room code:</sys:String>
+    <sys:String x:Key="RoomCopyCode">Copy Code</sys:String>
+    <sys:String x:Key="RoomCopyLink">Copy Link</sys:String>
+    <sys:String x:Key="RoomInvite">Invite</sys:String>
+    <sys:String x:Key="RoomInvitePlaceholder">@username</sys:String>
+    <sys:String x:Key="RoomOnline">Online:</sys:String>
+    <sys:String x:Key="RoomNoRoom">No active room</sys:String>
+    <sys:String x:Key="RoomConnected">Connected</sys:String>
+
+    <!-- Launch -->
+    <sys:String x:Key="LaunchTitle">Game Launch</sys:String>
+    <sys:String x:Key="LaunchExe">Executable:</sys:String>
+    <sys:String x:Key="LaunchManifest">Manifest:</sys:String>
+    <sys:String x:Key="LaunchStart">Launch Game</sys:String>
+    <sys:String x:Key="LaunchStop">Stop</sys:String>
+    <sys:String x:Key="LaunchRunning">Game is running (PID: {0})</sys:String>
+    <sys:String x:Key="LaunchNotRunning">Game is not running</sys:String>
+
+    <!-- Debug -->
+    <sys:String x:Key="DebugTitle">Debug Mode</sys:String>
+    <sys:String x:Key="DebugSubtitle">Test events without viewers</sys:String>
+    <sys:String x:Key="DebugFire">Send Event</sys:String>
+    <sys:String x:Key="DebugUsername">Username:</sys:String>
+    <sys:String x:Key="DebugParams">Parameters (key=value;...):</sys:String>
+    <sys:String x:Key="DebugLog">Event Log</sys:String>
+
+</ResourceDictionary>

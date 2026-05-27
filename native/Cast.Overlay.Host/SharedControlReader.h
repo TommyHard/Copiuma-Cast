@@ -7,7 +7,6 @@
 
 #include <windows.h>
 #include <cstdint>
-
 #include "../Cast.Overlay/SharedControl.h"
 
 namespace cast {
@@ -40,5 +39,4 @@ namespace cast {
         HANDLE             m_mapping = nullptr;
         ipc::ControlBlock* m_block = nullptr;
     };
-
 }

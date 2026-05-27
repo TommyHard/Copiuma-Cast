@@ -5,15 +5,20 @@
 #include "InputHook.h"
 #include "DInputHook.h"
 #include "ControlChannel.h"
-
+#include "IGraphicsBackend.h"
+#include "D3D9Backend.h"
+#include "D3D11Backend.h"
+#include <MinHook.h>
+#include <vector>
 #include <atomic>
 #include <thread>
+#include <memory>
 
 namespace cast::overlay {
     namespace {
 
-        // Стартуем видимым, чтобы сразу проверить, что хук рисует.
-        // Позже значение по умолчанию станет false (оверлей вызывается по клавише)
+        // Стартуем видимым, чтобы сразу проверить, что хук рисует
+        // Позже значение по умолчанию станет false
         std::atomic<bool> g_visible{ true };
 
         std::atomic<bool> g_running{ false };
@@ -26,6 +31,8 @@ namespace cast::overlay {
         // обрабатывалась дважды
         constexpr int kToggleKey = VK_F8;
 
+        std::vector<std::unique_ptr<IGraphicsBackend>> g_backends;
+
         void HotkeyLoop()
         {
             bool prevDown = false;
@@ -34,7 +41,7 @@ namespace cast::overlay {
                 if (!InputHook::IsActive())
                 {
                     const bool down = (GetAsyncKeyState(kToggleKey) & 0x8000) != 0;
-                    if (down && !prevDown)      // срабатываем по фронту нажатия
+                    if (down && !prevDown)
                         ToggleVisible();
                     prevDown = down;
                 }
@@ -49,36 +56,54 @@ namespace cast::overlay {
         Logger::Init();
         CAST_LOG_INFO("Overlay::Initialize");
 
-        if (!D3D9Hook::Initialize())
-        {
-            CAST_LOG_ERROR("D3D9Hook::Initialize failed — overlay disabled");
+        // Инициализируем MinHook глобально
+        MH_STATUS status = MH_Initialize();
+        if (status != MH_OK && status != MH_ERROR_ALREADY_INITIALIZED) {
+            CAST_LOG_ERROR("MinHook global init failed");
             return;
         }
 
-        // Обратный канал (DLL -> хост): размер игры, видимость, события ввода
+        // Ставим хуки на ВСЕ найденные графические библиотеки одновременно
+        if (GetModuleHandleW(L"dxgi.dll")) {
+            CAST_LOG_INFO("DXGI found. Installing D3D11 hooks...");
+            auto b11 = std::make_unique<D3D11Backend>();
+            if (b11->Initialize()) g_backends.push_back(std::move(b11));
+        }
+
+        if (GetModuleHandleW(L"d3d9.dll")) {
+            CAST_LOG_INFO("D3D9 found. Installing D3D9 hooks...");
+            auto b9 = std::make_unique<D3D9Backend>();
+            if (b9->Initialize()) g_backends.push_back(std::move(b9));
+        }
+
+        if (g_backends.empty()) {
+            CAST_LOG_ERROR("No supported graphics API found.");
+            return;
+        }
+
         ControlChannel::Open();
         ControlChannel::SetOverlayVisible(g_visible.load(std::memory_order_relaxed));
-
-        // Блокировка ввода игры через DirectInput8 (обзор камерой/клавиатура),
-        // пока оверлей открыт. Не критично, если игра не использует DInput
         DInputHook::Initialize();
 
         g_running.store(true, std::memory_order_relaxed);
         g_hotkeyThread = std::thread(HotkeyLoop);
 
-        CAST_LOG_INFO("Overlay ready (toggle = F8)");
+        CAST_LOG_INFO("Overlay ready");
     }
 
     void Shutdown()
     {
-        CAST_LOG_INFO("Overlay::Shutdown");
-
         g_running.store(false, std::memory_order_relaxed);
-        if (g_hotkeyThread.joinable())
-            g_hotkeyThread.join();
+        if (g_hotkeyThread.joinable()) g_hotkeyThread.join();
 
-        InputHook::Remove();   // восстанавливаем исходный WndProc окна игры
-        D3D9Hook::Shutdown();  // снимает все MinHook-хуки (D3D9 + курсор + DInput)
+        InputHook::Remove();
+
+        // Выключаем все активные хуки
+        for (auto& b : g_backends) b->Shutdown();
+        g_backends.clear();
+
+        MH_Uninitialize(); // Отключаем MinHook глобально
+
         ControlChannel::Close();
         Logger::Shutdown();
     }
@@ -100,5 +125,4 @@ namespace cast::overlay {
         ControlChannel::SetOverlayVisible(v);
         CAST_LOG_INFO("Overlay visibility = {}", v);
     }
-
 }

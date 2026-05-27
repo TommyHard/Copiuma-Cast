@@ -1,12 +1,19 @@
 <Solution>
   <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Multi-bit depth" />
+    <BuildType Name="Release" />
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/backend/">
     <Project Path="backend/Cast.API/Cast.API.csproj" Id="241d70fe-9a6a-40e9-b614-70f8e499149b">
-      <Platform Solution="Debug|x64" Project="x64" />
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="backend/Cast.MediaProcessing.Worker/Cast.MediaProcessing.Worker.csproj" Id="4c58d597-581b-4b24-b3f3-6d36b3ca4c57">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
     </Project>
   </Folder>
   <Folder Name="/deploy/">
@@ -14,18 +21,27 @@
   </Folder>
   <Folder Name="/desktop/">
     <Project Path="desktop/Cast.Desktop/Cast.Desktop.csproj" Id="b14b91c7-40fb-45ce-8c1e-cb96f024fb56">
-      <Platform Solution="Debug|x64" Project="x64" />
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
+      <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="desktop/Cast.GameBridge/Cast.GameBridge.csproj" Id="a8bafac9-ed56-4e4c-b47b-2155f11f60af" />
+    <Project Path="desktop/Cast.GameBridge/Cast.GameBridge.csproj" Id="a8bafac9-ed56-4e4c-b47b-2155f11f60af">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
+    </Project>
   </Folder>
-  <Folder Name="/docs/" />
   <Folder Name="/frontend/">
     <Project Path="frontend/Cast.Web/cast.web.esproj">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
       <Platform Project="AnyCPU" />
       <Build />
       <Deploy Solution="*|Any CPU" />
       <Deploy Solution="*|x86" />
+      <Deploy Solution="Multi-bit depth|x64" />
       <Deploy Solution="Release|x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/gateway/">
+    <Project Path="gateway/Cast.Gateway/Cast.Gateway.csproj" Id="0ad1c033-da26-43a7-af8f-6d3f61dd8711">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
     </Project>
   </Folder>
   <Folder Name="/mods/" />
@@ -37,11 +53,22 @@
     <File Path="mods/Gta San Andreas/Flame Story/moonloader/event.lua" />
   </Folder>
   <Folder Name="/native/">
-    <Project Path="native/Cast.Overlay.Host/Cast.Overlay.Host.vcxproj" Id="15569f19-f37f-422e-9281-ffd9c79a779a" />
-    <Project Path="native/Cast.Overlay/Cast.Overlay.vcxproj" Id="2bfa1457-3359-4fa2-882f-35610ea8febd" />
+    <Project Path="native/Cast.Overlay.Host/Cast.Overlay.Host.vcxproj" Id="15569f19-f37f-422e-9281-ffd9c79a779a">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
+      <Platform Solution="Debug|Any CPU" Project="Win32" />
+      <Platform Solution="Release|x64" Project="Win32" />
+    </Project>
+    <Project Path="native/Cast.Overlay/Cast.Overlay.vcxproj" Id="2bfa1457-3359-4fa2-882f-35610ea8febd">
+      <Platform Solution="Debug|Any CPU" Project="Win32" />
+    </Project>
   </Folder>
   <Folder Name="/shared/">
-    <Project Path="shared/Cast.Shared/Cast.Shared.csproj" Id="d05be0d4-078e-42fc-81f3-119b6ac3a52a" />
+    <Project Path="shared/Cast.ServiceDefaults/Cast.ServiceDefaults.csproj" Id="7bacec4e-456d-4431-9ba9-870be0422f35">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
+    </Project>
+    <Project Path="shared/Cast.Shared/Cast.Shared.csproj" Id="d05be0d4-078e-42fc-81f3-119b6ac3a52a">
+      <BuildType Solution="Multi-bit depth|*" Project="Debug" />
+    </Project>
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
