@@ -406,19 +406,6 @@ namespace Cast.API.Migrations
                         .IsUnique();
 
                     b.ToTable("Games");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("0a0c1d2e-3f40-5152-6364-757687980000"),
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Description = "Crowd-Play модификация: зрители влияют на игру в реальном времени.",
-                            Genre = "Action-adventure",
-                            IsEnabled = true,
-                            ReleaseDate = new DateOnly(2004, 10, 26),
-                            Slug = "gta_sa",
-                            Title = "GTA San Andreas"
-                        });
                 });
 
             modelBuilder.Entity("Cast.API.Domain.GameEventOverride", b =>
@@ -684,6 +671,9 @@ namespace Cast.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Banned")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -801,6 +791,28 @@ namespace Cast.API.Migrations
                         .IsUnique();
 
                     b.ToTable("StreamerWallets");
+                });
+
+            modelBuilder.Entity("Cast.API.Domain.Tag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Tags");
                 });
 
             modelBuilder.Entity("Cast.API.Domain.UserConnection", b =>

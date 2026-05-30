@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { TagInput } from '@/components/TagInput';
 import type { Analytics, FilterMode, TagFilters } from '@/lib/types';
 
 const box = 'rounded-lg border border-border bg-bg-elevated p-4';
@@ -14,14 +15,13 @@ function Filters() {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ['filters'], queryFn: async () => (await api.get<TagFilters>('/streamer/filters')).data });
   const [mode, setMode] = useState<FilterMode>('Blocklist');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => { if (data) { setMode(data.mode); setTags(data.tags.join(', ')); } }, [data]);
+  useEffect(() => { if (data) { setMode(data.mode); setTags(data.tags); } }, [data]);
 
   async function save() {
-    const list = tags.split(',').map((s) => s.trim()).filter(Boolean);
-    await api.put('/streamer/filters', { mode, tags: list });
+    await api.put('/streamer/filters', { mode, tags });
     setSaved(true);
     qc.invalidateQueries({ queryKey: ['filters'] });
   }
@@ -36,8 +36,9 @@ function Filters() {
           <option value="Allowlist">{t('streamer.Allowlist')}</option>
         </select>
       </div>
-      <input className={`${input} mt-2 w-full`} placeholder={t('streamer.tags')} value={tags}
-        onChange={(e) => { setTags(e.target.value); setSaved(false); }} />
+      <div className="mt-2">
+        <TagInput value={tags} onChange={(v) => { setTags(v); setSaved(false); }} placeholder={t('streamer.tags')} />
+      </div>
       <button onClick={save} className="mt-2 rounded-md bg-accent px-4 py-2 font-medium text-accent-fg hover:opacity-90">{t('common.save')}</button>
       {saved && <span className="ml-2 text-sm text-success">{t('profile.saved')}</span>}
     </section>

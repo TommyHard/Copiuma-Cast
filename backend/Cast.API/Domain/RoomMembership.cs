@@ -21,5 +21,10 @@ public sealed class RoomMembership
 
     public RoomRole Role { get; set; } = RoomRole.Viewer;
 
+    /// <summary>
+    /// Заблокирован стримером: не может войти/взаимодействовать в комнате
+    /// </summary>
+    public bool Banned { get; set; }
+
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
 }

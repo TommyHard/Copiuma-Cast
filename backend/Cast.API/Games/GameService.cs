@@ -20,6 +20,63 @@ public sealed class GameService
         _catalog = catalog;
     }
 
+    private static readonly System.Text.Json.JsonSerializerOptions ManifestJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
+    };
+
+    /// <summary>
+    /// Доступные события (белый список) игры из БД (Game.InteractionsJson).
+    /// Если у игры манифест не задан — откат на файловый ManifestCatalog.
+    /// Игра не фильтруется по IsEnabled: список событий нужен и комнате
+    /// </summary>
+    public async Task<IReadOnlyList<GameEventDefinition>> GetInteractionsAsync(string? slug, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return Array.Empty<GameEventDefinition>();
+
+        var game = await _db.Games.AsNoTracking()
+            .FirstOrDefaultAsync(g => g.Slug == slug, ct);
+
+        return game is null
+            ? ParseInteractions(null, slug)
+            : ParseInteractions(game.InteractionsJson, slug);
+    }
+
+    /// <summary>
+    /// Разбор манифеста событий из строки JSON. Поддерживает как полный
+    /// GameManifest, так и "сырой" массив событий. Пустой JSON — откат на
+    /// файловый каталог манифестов
+    /// </summary>
+    private IReadOnlyList<GameEventDefinition> ParseInteractions(string? interactionsJson, string slug)
+    {
+        if (string.IsNullOrWhiteSpace(interactionsJson))
+        {
+            try { return _catalog.GetEvents(slug); } catch { return Array.Empty<GameEventDefinition>(); }
+        }
+
+        try
+        {
+            var manifest = System.Text.Json.JsonSerializer.Deserialize<Cast.Shared.GameBridge.GameManifest>(interactionsJson, ManifestJsonOptions);
+            if (manifest?.Events is { } events)
+                return events;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<List<GameEventDefinition>>(interactionsJson, ManifestJsonOptions)
+                       ?? new List<GameEventDefinition>();
+            }
+            catch { }
+        }
+
+        return Array.Empty<GameEventDefinition>();
+    }
+
     public Task<List<GameCardDto>> GetCatalogAsync(CancellationToken ct = default)
         // Возвращаем ВСЕ игры (включая выключенные) с флагом IsEnabled — UI
         // показывает их приглушёнными и не пускает внутрь, а не скрывает
@@ -38,39 +95,7 @@ public sealed class GameService
 
         var card = new GameCardDto(game.Slug, game.Title, game.Description, game.Genre, game.BannerUrl, game.ReleaseDate, game.IsEnabled);
 
-        IReadOnlyList<GameEventDefinition> interactions = Array.Empty<GameEventDefinition>();
-        if (!string.IsNullOrWhiteSpace(game.InteractionsJson))
-        {
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
-                AllowTrailingCommas = true,
-                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
-            };
-
-            try
-            {
-                var manifest = System.Text.Json.JsonSerializer.Deserialize<Cast.Shared.GameBridge.GameManifest>(game.InteractionsJson, options);
-                if (manifest?.Events != null)
-                {
-                    interactions = manifest.Events;
-                }
-            }
-            catch (System.Text.Json.JsonException)
-            {
-                try
-                {
-                    interactions = System.Text.Json.JsonSerializer.Deserialize<List<GameEventDefinition>>(game.InteractionsJson, options)
-                                   ?? new List<GameEventDefinition>();
-                }
-                catch { }
-            }
-        }
-        else
-        {
-            try { interactions = _catalog.GetEvents(slug); } catch { }
-        }
+        var interactions = ParseInteractions(game.InteractionsJson, slug);
 
         var personal = await StatsAsync(slug, userId, ct);
         var global = await StatsAsync(slug, null, ct);

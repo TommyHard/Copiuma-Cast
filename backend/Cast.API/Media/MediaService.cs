@@ -1,6 +1,7 @@
 using Cast.API.Data;
 using Cast.API.Domain;
 using Cast.API.Storage;
+using Cast.API.Tags;
 using Cast.Shared.GameBridge;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,14 +16,18 @@ public sealed class MediaService
 {
     private readonly CastDbContext _db;
     private readonly StorageService _storage;
+    private readonly TagService _tags;
 
-    public MediaService(CastDbContext db, StorageService storage)
+    public MediaService(CastDbContext db, StorageService storage, TagService tags)
     {
         _db = db;
         _storage = storage;
+        _tags = tags;
     }
 
-    public async Task<MediaDto> CreateAsync(Guid ownerId, string title, MediaType type, string originalKey, CancellationToken ct = default)
+    public async Task<MediaDto> CreateAsync(Guid ownerId, string title, MediaType type, string originalKey,
+        IEnumerable<string> tags, int? clipStartMs, int? clipEndMs, int posXPct, int posYPct, int scalePct,
+        CancellationToken ct = default)
     {
         var item = new MediaItem
         {
@@ -30,7 +35,14 @@ public sealed class MediaService
             Title = title.Trim(),
             Type = type,
             OriginalKey = originalKey,
-            Processed = false
+            Processed = false,
+            // Теги задаёт пользователь при загрузке; пополняем справочник
+            Tags = await _tags.EnsureAsync(tags, ct),
+            ClipStartMs = clipStartMs is > 0 ? clipStartMs : null,
+            ClipEndMs = clipEndMs is > 0 ? clipEndMs : null,
+            PosXPct = Math.Clamp(posXPct, 0, 100),
+            PosYPct = Math.Clamp(posYPct, 0, 100),
+            ScalePct = Math.Clamp(scalePct, 10, 400)
         };
         _db.MediaItems.Add(item);
         await _db.SaveChangesAsync(ct);
@@ -38,24 +50,63 @@ public sealed class MediaService
     }
 
     public async Task<List<MediaDto>> MyLibraryAsync(Guid ownerId, CancellationToken ct = default)
-        => (await _db.MediaItems.AsNoTracking()
+    {
+        var items = await _db.MediaItems.AsNoTracking()
             .Where(m => m.OwnerId == ownerId)
             .OrderByDescending(m => m.CreatedAt)
-            .ToListAsync(ct))
-            .Select(Map).ToList();
+            .ToListAsync(ct);
+        return await MapManyAsync(items, ct);
+    }
+
+    /// <summary>
+    /// Каталог всех одобренных медиа с поиском по названию, фильтром по типу и
+    /// тегу и сортировкой (newest|title|cheap|expensive)
+    /// </summary>
+    public async Task<List<MediaDto>> CatalogAsync(string? search, MediaType? type, string? tag, string? sort, CancellationToken ct = default)
+    {
+        var q = _db.MediaItems.AsNoTracking().Where(m => m.Status == MediaStatus.Approved);
+
+        if (type is not null)
+            q = q.Where(m => m.Type == type);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            q = q.Where(m => m.Title.ToLower().Contains(s));
+        }
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            var tg = tag.Trim().ToLower();
+            q = q.Where(m => m.Tags.Contains(tg));
+        }
+
+        q = sort switch
+        {
+            "title" => q.OrderBy(m => m.Title),
+            "cheap" => q.OrderBy(m => m.CostCoins),
+            "expensive" => q.OrderByDescending(m => m.CostCoins),
+            _ => q.OrderByDescending(m => m.CreatedAt)
+        };
+
+        var items = await q.Take(200).ToListAsync(ct);
+        return await MapManyAsync(items, ct);
+    }
 
     public async Task<MediaDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var item = await _db.MediaItems.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct);
-        return item is null ? null : Map(item);
+        if (item is null)
+            return null;
+        return (await MapManyAsync(new List<MediaItem> { item }, ct)).First();
     }
 
     public async Task<List<MediaDto>> PendingAsync(CancellationToken ct = default)
-        => (await _db.MediaItems.AsNoTracking()
+    {
+        var items = await _db.MediaItems.AsNoTracking()
             .Where(m => m.Status == MediaStatus.Pending)
             .OrderBy(m => m.CreatedAt)
-            .ToListAsync(ct))
-            .Select(Map).ToList();
+            .ToListAsync(ct);
+        return await MapManyAsync(items, ct);
+    }
 
     public async Task<bool> ApproveAsync(Guid adminId, Guid id, IEnumerable<string> tags, long costCoins, CancellationToken ct = default)
     {
@@ -63,7 +114,7 @@ public sealed class MediaService
         if (item is null)
             return false;
         item.Status = MediaStatus.Approved;
-        item.Tags = tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).Distinct().ToList();
+        item.Tags = await _tags.EnsureAsync(tags, ct);
         item.CostCoins = costCoins < 0 ? 0 : costCoins;
         item.ReviewedBy = adminId;
         item.ReviewedAt = DateTimeOffset.UtcNow;
@@ -79,6 +130,80 @@ public sealed class MediaService
         item.Status = MediaStatus.Rejected;
         item.ReviewedBy = adminId;
         item.ReviewedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <summary>
+    /// Все медиа для админ-управления (опц. фильтр по статусу), с именами
+    /// </summary>
+    public async Task<List<MediaDto>> AdminListAsync(MediaStatus? status, CancellationToken ct = default)
+    {
+        var q = _db.MediaItems.AsNoTracking().AsQueryable();
+        if (status is not null)
+            q = q.Where(m => m.Status == status);
+        var items = await q.OrderByDescending(m => m.CreatedAt).Take(500).ToListAsync(ct);
+        return await MapManyAsync(items, ct);
+    }
+
+    /// <summary>
+    /// Приостановить доступ к медиа (нельзя использовать, но не удалено)
+    /// </summary>
+    public async Task<bool> SuspendAsync(Guid adminId, Guid id, CancellationToken ct = default)
+    {
+        var item = await _db.MediaItems.FirstOrDefaultAsync(m => m.Id == id, ct);
+        if (item is null)
+            return false;
+        item.Status = MediaStatus.Suspended;
+        item.ReviewedBy = adminId;
+        item.ReviewedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <summary>
+    /// Снять приостановку: вернуть медиа в одобренные
+    /// </summary>
+    public async Task<bool> RestoreAsync(Guid adminId, Guid id, CancellationToken ct = default)
+    {
+        var item = await _db.MediaItems.FirstOrDefaultAsync(m => m.Id == id, ct);
+        if (item is null)
+            return false;
+        item.Status = MediaStatus.Approved;
+        item.ReviewedBy = adminId;
+        item.ReviewedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <summary>
+    /// Админская правка тегов и стоимости (статус не меняется)
+    /// </summary>
+    public async Task<bool> AdminEditAsync(Guid id, IEnumerable<string> tags, long costCoins, CancellationToken ct = default)
+    {
+        var item = await _db.MediaItems.FirstOrDefaultAsync(m => m.Id == id, ct);
+        if (item is null)
+            return false;
+        item.Tags = await _tags.EnsureAsync(tags, ct);
+        item.CostCoins = costCoins < 0 ? 0 : costCoins;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <summary>
+    /// Полностью удалить медиа с сервиса: объекты из хранилища и запись из БД
+    /// </summary>
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var item = await _db.MediaItems.FirstOrDefaultAsync(m => m.Id == id, ct);
+        if (item is null)
+            return false;
+
+        await _storage.DeleteMediaAsync(item.OriginalKey, ct);
+        await _storage.DeleteMediaAsync(item.WebmKey, ct);
+        await _storage.DeleteMediaAsync(item.OggKey, ct);
+
+        _db.MediaItems.Remove(item);
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -131,13 +256,34 @@ public sealed class MediaService
         return (true, null, playback, item.CostCoins);
     }
 
-    private MediaDto Map(MediaItem m) => new(
+    private MediaDto Map(MediaItem m, string? ownerName = null, string? approverName = null) => new(
         m.Id, m.OwnerId, m.Title, m.Type, m.Status, m.Tags, m.CostCoins,
         _storage.PresignMedia(m.OriginalKey),
         m.WebmKey is null ? null : _storage.PresignMedia(m.WebmKey),
         m.OggKey is null ? null : _storage.PresignMedia(m.OggKey),
         m.DurationMs, m.ClipStartMs, m.ClipEndMs, m.PosXPct, m.PosYPct, m.ScalePct,
-        m.Processed, m.CreatedAt);
+        m.Processed, m.CreatedAt, ownerName, approverName, m.ReviewedAt);
+
+    /// <summary>
+    /// Маппинг с подстановкой отображаемых имён (кто загрузил / кто одобрил)
+    /// одним запросом к пользователям
+    /// </summary>
+    private async Task<List<MediaDto>> MapManyAsync(List<MediaItem> items, CancellationToken ct)
+    {
+        var ids = items.Select(i => i.OwnerId)
+            .Concat(items.Where(i => i.ReviewedBy.HasValue).Select(i => i.ReviewedBy!.Value))
+            .Distinct()
+            .ToList();
+
+        var names = await _db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
+
+        return items.Select(m => Map(
+            m,
+            names.GetValueOrDefault(m.OwnerId),
+            m.ReviewedBy is { } rb ? names.GetValueOrDefault(rb) : null)).ToList();
+    }
 
     /// <summary>
     /// Обновить монтаж/позицию (владелец)

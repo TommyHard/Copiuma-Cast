@@ -3,6 +3,7 @@
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
 #include "include/cef_task.h"
+#include <string>
 
 namespace cast {
     namespace {
@@ -125,6 +126,20 @@ namespace cast {
             const bool visible = m_control.OverlayVisible();
             if (visible && !m_lastVisible && m_browser->GetHost())
                 m_browser->GetHost()->SetFocus(true);
+
+            // Пушим состояние open/closed на страницу при смене — React-страница
+            // переключается между подсказкой-тостом (закрыт) и полным UI (открыт)
+            if (visible != m_lastVisible)
+            {
+                if (CefRefPtr<CefFrame> frame = m_browser->GetMainFrame())
+                {
+                    const char* b = visible ? "true" : "false";
+                    std::string js =
+                        std::string("window.__castOverlayOpen=") + b +
+                        ";window.dispatchEvent(new CustomEvent('cast-overlay',{detail:{open:" + b + "}}));";
+                    frame->ExecuteJavaScript(js, frame->GetURL(), 0);
+                }
+            }
             m_lastVisible = visible;
 
             // События ввода -> в браузер. Ограничиваем число за один проход,

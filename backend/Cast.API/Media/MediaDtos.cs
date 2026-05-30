@@ -20,7 +20,10 @@ public sealed record MediaDto(
     int PosYPct,
     int ScalePct,
     bool Processed,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? OwnerName,
+    string? ApprovedByName,
+    DateTimeOffset? ReviewedAt);
 
 public sealed record ApproveMediaRequest(List<string> Tags, long CostCoins);
 

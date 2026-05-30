@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import { NewsEditorModal } from '@/features/news/NewsEditorModal';
 import type { NewsPost } from '@/lib/types';
 
 function AuthorAvatar({ name, url }: { name: string; url?: string | null }) {
@@ -17,22 +20,36 @@ function AuthorAvatar({ name, url }: { name: string; url?: string | null }) {
 
 export function DashboardPage() {
     const { t } = useTranslation();
+    const qc = useQueryClient();
+    const isAdmin = useAuthStore((s) => s.hasRole('Admin'));
+    const [creating, setCreating] = useState(false);
+
     const { data } = useQuery({
-        queryKey: ['news'],
-        queryFn: async () => (await api.get<NewsPost[]>('/news')).data,
+        queryKey: ['news', isAdmin],
+        queryFn: async () => (await api.get<NewsPost[]>(isAdmin ? '/news/admin/all' : '/news')).data,
     });
 
     return (
         <div className="mx-auto max-w-3xl space-y-4">
             <section className="rounded-lg border border-border bg-bg-elevated p-4">
-                <h2 className="mb-3 text-lg font-semibold text-fg">{t('dashboard.news')}</h2>
+                <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-fg">{t('dashboard.news')}</h2>
+                    {isAdmin && (
+                        <button onClick={() => setCreating(true)} className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg hover:opacity-90">
+                            + {t('admin.create')}
+                        </button>
+                    )}
+                </div>
                 {data && data.length > 0 ? (
                     <div className="space-y-4">
                         {data.map((n) => (
                             <article key={n.id} className="border-b border-border pb-3 last:border-0">
                                 {n.imageUrl && <img src={n.imageUrl} alt="" className="mb-2 max-h-48 w-full rounded-md object-cover" />}
                                 <Link to={`/news/${n.id}`} className="hover:underline">
-                                    <h3 className="font-semibold text-fg">{n.title}</h3>
+                                    <h3 className="font-semibold text-fg">
+                                        {!n.published && <span className="mr-2 text-danger">[Скрыто]</span>}
+                                        {n.title}
+                                    </h3>
                                 </Link>
 
                                 <div className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
@@ -57,6 +74,14 @@ export function DashboardPage() {
                     <p className="text-sm text-fg-muted">{t('common.empty')}</p>
                 )}
             </section>
+
+            {isAdmin && (
+                <NewsEditorModal
+                    isOpen={creating}
+                    onClose={() => setCreating(false)}
+                    onSaved={() => qc.invalidateQueries({ queryKey: ['news'] })}
+                />
+            )}
         </div>
     );
 }

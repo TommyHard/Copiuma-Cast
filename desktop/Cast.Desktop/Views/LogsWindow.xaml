@@ -1,0 +1,38 @@
+<Window x:Class="Cast.Desktop.Views.LogsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cast.Desktop — Логи" Height="520" Width="860"
+        Background="{DynamicResource BgPrimaryBrush}">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="CopyButton" Content="Копировать всё" Padding="10,4" Margin="0,0,6,0" Click="OnCopy"/>
+            <Button x:Name="ClearButton" Content="Очистить" Padding="10,4" Margin="0,0,6,0" Click="OnClear"/>
+            <CheckBox x:Name="AutoScroll" Content="Автопрокрутка" IsChecked="True" VerticalAlignment="Center"
+                      Foreground="{DynamicResource FgSecondaryBrush}" Margin="6,0,0,0"/>
+        </StackPanel>
+
+        <ListBox x:Name="LogList" Grid.Row="1"
+                 FontFamily="Consolas" FontSize="12"
+                 Background="{DynamicResource BgTertiaryBrush}"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" TextWrapping="NoWrap">
+                        <TextBlock.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Копировать строку" Click="OnCopyRow"/>
+                            </ContextMenu>
+                        </TextBlock.ContextMenu>
+                    </TextBlock>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</Window>

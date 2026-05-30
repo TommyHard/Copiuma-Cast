@@ -1,4 +1,5 @@
 using Cast.Desktop.Services;
+using Cast.Shared.GameBridge;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -28,6 +29,22 @@ public sealed partial class RoomViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<string> _log = new();
 
     /// <summary>
+    /// Подключённые к комнате участники (отображаются в списке)
+    /// </summary>
+    [ObservableProperty] private ObservableCollection<RoomMember> _members = new();
+
+    /// <summary>
+    /// Колбэк подключения SignalR к комнате (устанавливается MainViewModel).
+    /// Нужен, чтобы после создания комнаты начать принимать ростер и команды
+    /// </summary>
+    internal Func<string, CancellationToken, Task>? HubConnector { get; set; }
+
+    /// <summary>
+    /// Колбэк кика/бана зрителя (устанавливается MainViewModel)
+    /// </summary>
+    internal Func<Guid, Guid, bool, Task>? KickConnector { get; set; }
+
+    /// <summary>
     /// Доступные игры для выбора при создании комнаты
     /// </summary>
     [ObservableProperty] private ObservableCollection<CastApiClient.GameInfo> _availableGames = new();
@@ -49,7 +66,11 @@ public sealed partial class RoomViewModel : ObservableObject
             foreach (var g in games)
                 AvailableGames.Add(g);
         }
-        catch { /* ignore */ }
+        catch (Exception ex)
+        {
+            AppLog.Info($"Ошибка: {ex.Message}");
+            AppendLog($"Ошибка загрузки списка игр: {ex.Message}");
+        }
     }
 
     [RelayCommand]
@@ -69,10 +90,16 @@ public sealed partial class RoomViewModel : ObservableObject
             HasRoom = true;
             StatusText = $"Комната создана: {room.Code}";
             AppendLog($"Комната {room.Code} создана.");
+
+            // Подключаемся к хабу комнаты: команды зрителей + список участников
+            if (HubConnector is not null)
+                await HubConnector(room.Code, CancellationToken.None);
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка: {ex.Message}";
+            AppendLog($"Ошибка создания комнаты: {ex.Message}");
         }
     }
 
@@ -89,7 +116,9 @@ public sealed partial class RoomViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка: {ex.Message}";
+            AppendLog($"Ошибка закрытия комнаты: {ex.Message}");
         }
     }
 
@@ -97,7 +126,10 @@ public sealed partial class RoomViewModel : ObservableObject
     private void CopyCode()
     {
         if (!string.IsNullOrEmpty(RoomCode))
+        {
             Clipboard.SetText(RoomCode);
+            AppendLog("Код комнаты скопирован в буфер обмена.");
+        }
     }
 
     [RelayCommand]
@@ -109,10 +141,13 @@ public sealed partial class RoomViewModel : ObservableObject
             var link = await _api.GetInviteLinkAsync(RoomId);
             Clipboard.SetText(link);
             StatusText = "Ссылка скопирована.";
+            AppendLog("Ссылка-приглашение скопирована в буфер обмена.");
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка: {ex.Message}";
+            AppendLog($"Ошибка копирования ссылки: {ex.Message}");
         }
     }
 
@@ -125,12 +160,39 @@ public sealed partial class RoomViewModel : ObservableObject
             var id = InviteIdentifier.TrimStart('@');
             await _api.InviteAsync(RoomId, id);
             StatusText = $"Приглашение отправлено: @{id}";
-            AppendLog($"Приглашён @{id}.");
+            AppendLog($"Приглашён пользователь @{id}.");
             InviteIdentifier = string.Empty;
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка: {ex.Message}";
+            AppendLog($"Ошибка отправки приглашения: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private Task Kick(RoomMember? member) => KickOrBan(member, ban: false);
+
+    [RelayCommand]
+    private Task Block(RoomMember? member) => KickOrBan(member, ban: true);
+
+    private async Task KickOrBan(RoomMember? member, bool ban)
+    {
+        if (member is null || KickConnector is null) return;
+        if (!Guid.TryParse(member.UserId, out var targetId)) return;
+        if (string.Equals(member.Role, "Streamer", StringComparison.OrdinalIgnoreCase)) return;
+        try
+        {
+            await KickConnector(RoomId, targetId, ban);
+            StatusText = ban ? $"Зритель {member.DisplayName} заблокирован." : $"Зритель {member.DisplayName} выгнан.";
+            AppendLog(StatusText);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Info($"Ошибка: {ex.Message}");
+            StatusText = $"Ошибка: {ex.Message}";
+            AppendLog($"Ошибка ограничения доступа: {ex.Message}");
         }
     }
 
@@ -138,5 +200,20 @@ public sealed partial class RoomViewModel : ObservableObject
     {
         Application.Current.Dispatcher.Invoke(() =>
             Log.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {message}"));
+        AppLog.Info($"[room] {message}");
+    }
+
+    /// <summary>
+    /// Применить пришедший с сервера ростер: список участников и счётчик онлайна
+    /// </summary>
+    internal void UpdateRoster(RoomRoster roster)
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            Members.Clear();
+            foreach (var m in roster.Members)
+                Members.Add(m);
+            OnlineCount = roster.Online;
+        });
     }
 }

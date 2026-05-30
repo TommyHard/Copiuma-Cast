@@ -48,6 +48,9 @@
     <sys:String x:Key="RoomInvitePlaceholder">@никнейм</sys:String>
     <sys:String x:Key="RoomOnline">Онлайн:</sys:String>
     <sys:String x:Key="RoomNoRoom">Нет активной комнаты</sys:String>
+    <sys:String x:Key="RoomKick">Выгнать</sys:String>
+    <sys:String x:Key="RoomBlock">Заблокировать</sys:String>
+    <sys:String x:Key="RoomMembers">Подключённые зрители:</sys:String>
     <sys:String x:Key="RoomConnected">Подключено</sys:String>
 
     <!-- Launch -->

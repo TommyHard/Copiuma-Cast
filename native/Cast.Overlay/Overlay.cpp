@@ -17,9 +17,10 @@
 namespace cast::overlay {
     namespace {
 
-        // Стартуем видимым, чтобы сразу проверить, что хук рисует
-        // Позже значение по умолчанию станет false
-        std::atomic<bool> g_visible{ true };
+        // Стартуем скрытым: игра видна как обычно, оверлей
+        // вызывается по F8. До первого показа рендер не вызывается и ввод не
+        // перехватывается
+        std::atomic<bool> g_visible{ false };
 
         std::atomic<bool> g_running{ false };
         std::thread       g_hotkeyThread;

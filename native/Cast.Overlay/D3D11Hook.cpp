@@ -40,7 +40,10 @@ namespace cast {
 
             EnsureInputHook(swapChain);
 
-            if (overlay::IsVisible()) {
+            // Рендерим оверлей ВСЕГДА: страница сама показывает либо полный UI
+            // (открыт), либо тост-подсказку (закрыт). Перехват ввода завязан на
+            // видимость (InputHook), поэтому в закрытом состоянии игра управляема
+            {
                 // Если игра полностью пересоздала девайс
                 if (g_renderer.IsInitialized()) {
                     ID3D11Device* currentDevice = nullptr;

@@ -1,31 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { HubConnection } from '@microsoft/signalr';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { createHubConnection, HUBS } from '@/lib/signalr';
-import type { MediaItem, RoomEvent, RoomInfo, RoomRole } from '@/lib/types';
+import type { MediaItem, RoomEvent } from '@/lib/types';
+import { useRoomStore } from '@/store/room';
 import { BetsPanel } from './BetsPanel';
-
-const readRole = (d: any): RoomRole => {
-  const r = d?.Role ?? d?.role;
-  return typeof r === 'number' ? (r === 1 ? 'Streamer' : 'Viewer') : (r ?? 'Viewer');
-};
-const readId = (d: any): string => d?.Id ?? d?.id ?? '';
-const readBalance = (r: any): number => r?.Balance ?? r?.balance ?? 0;
 
 export function RoomPage() {
     const { t } = useTranslation();
     const qc = useQueryClient();
-    const connRef = useRef<HubConnection | null>(null);
-
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { room, balance, log, busy, join, leave, trigger, setBalance, setHandlers } = useRoomStore();
     const [code, setCode] = useState('');
-    const [room, setRoom] = useState<RoomInfo | null>(null);
-    const [balance, setBalance] = useState<number | null>(null);
-    const [log, setLog] = useState<string[]>([]);
-    const [mediaId, setMediaId] = useState('');
     const [error, setError] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
 
     const events = useQuery({
         queryKey: ['room-events', room?.id],
@@ -38,32 +26,41 @@ export function RoomPage() {
         enabled: !!room,
     });
 
-    useEffect(() => () => { void connRef.current?.stop(); }, []);
+    const [mediaId, setMediaId] = useState('');
 
-    async function join() {
-        setError(null); setBusy(true);
-        try {
-            const conn = createHubConnection(HUBS.room);
-            conn.on('GameCommand', (cmd: any) => {
-                const line = t('room.triggered', { user: cmd?.Username ?? cmd?.username ?? 'viewer', event: cmd?.EventId ?? cmd?.eventId ?? '' });
-                setLog((l) => [line, ...l].slice(0, 50));
-            });
-            conn.on('BetUpdated', () => { void qc.invalidateQueries({ queryKey: ['bets'] }); });
-            await conn.start();
-            const dto = await conn.invoke('JoinRoom', code.trim().toUpperCase());
-            connRef.current = conn;
-            setRoom({ id: readId(dto), code: dto?.Code ?? dto?.code ?? code, title: dto?.Title ?? dto?.title ?? '', gameId: dto?.GameId ?? dto?.gameId ?? null, isOpen: true, role: readRole(dto) });
-        } catch {
-            setError(t('common.error'));
-        } finally { setBusy(false); }
-    }
+    // Колбэки активной страницы для событий соединения
+    useEffect(() => {
+        setHandlers({
+            onBetUpdated: () => { if (room) void qc.invalidateQueries({ queryKey: ['bets', room.id] }); },
+            onKicked: () => setError(t('room.kicked')),
+        });
+    }, [room, qc, setHandlers, t]);
 
-    async function trigger(eventId: string) {
-        if (!room || !connRef.current) return;
+    // Автовход по ссылке-приглашению (?code=...)
+    useEffect(() => {
+        const invite = searchParams.get('code');
+        if (invite && !room && !busy) {
+            setCode(invite);
+            void doJoin(invite);
+            searchParams.delete('code');
+            setSearchParams(searchParams, { replace: true });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    async function doJoin(c: string) {
         setError(null);
         try {
-            const res = await connRef.current.invoke('TriggerEvent', room.code, eventId, {}, mediaId || null);
-            setBalance(readBalance(res));
+            await join(c);
+        } catch {
+            setError(t('common.error'));
+        }
+    }
+
+    async function onTrigger(eventId: string) {
+        setError(null);
+        try {
+            await trigger(eventId, mediaId || null);
         } catch (err: any) {
             setError(String(err?.message || '').includes('средств') ? t('room.insufficient') : t('common.error'));
         }
@@ -75,12 +72,6 @@ export function RoomPage() {
         void events.refetch();
     }
 
-    async function leave() {
-        await connRef.current?.stop();
-        connRef.current = null;
-        setRoom(null); setBalance(null); setLog([]);
-    }
-
     const input = 'rounded-md border border-border bg-bg px-3 py-2 text-fg outline-none focus:border-accent';
 
     if (!room) {
@@ -89,7 +80,7 @@ export function RoomPage() {
                 <h1 className="text-2xl font-bold text-fg">{t('room.title')}</h1>
                 <p className="text-sm text-fg-muted">{t('room.joinHint')}</p>
                 <input className={`${input} w-full text-center uppercase`} placeholder={t('room.code')} value={code} onChange={(e) => setCode(e.target.value)} />
-                <button onClick={join} disabled={busy || !code} className="w-full rounded-md bg-accent px-4 py-2 font-medium text-accent-fg hover:opacity-90 disabled:opacity-50">{t('room.join')}</button>
+                <button onClick={() => doJoin(code)} disabled={busy || !code} className="w-full rounded-md bg-accent px-4 py-2 font-medium text-accent-fg hover:opacity-90 disabled:opacity-50">{t('room.join')}</button>
                 {error && <p className="text-sm text-danger">{error}</p>}
             </div>
         );
@@ -102,7 +93,7 @@ export function RoomPage() {
                     <h1 className="text-xl font-bold text-fg">{room.title || room.code}</h1>
                     <span className="rounded bg-bg-accent px-2 py-0.5 text-xs text-accent">{room.code}</span>
                     {balance !== null && <span className="text-sm text-fg-muted">{t('room.balance')}: {balance}</span>}
-                    <button onClick={leave} className="ml-auto rounded-md border border-border px-2 py-1 text-sm text-fg hover:border-danger">{t('room.leave')}</button>
+                    <button onClick={() => void leave()} className="ml-auto rounded-md border border-border px-2 py-1 text-sm text-fg hover:border-danger">{t('room.leave')}</button>
                 </header>
 
                 <div className="flex items-center gap-2">
@@ -118,7 +109,7 @@ export function RoomPage() {
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {(events.data ?? []).map((e) => (
                             <div key={e.eventId} className="rounded-lg border border-border bg-bg-elevated p-3">
-                                <button disabled={!e.enabled} onClick={() => trigger(e.eventId)}
+                                <button disabled={!e.enabled} onClick={() => onTrigger(e.eventId)}
                                     className="w-full text-left hover:opacity-90 disabled:opacity-40">
                                     <div className="font-medium text-fg">{e.title}</div>
                                     <div className="text-xs text-accent">{e.costCoins}</div>
@@ -139,7 +130,7 @@ export function RoomPage() {
                 <section>
                     <h2 className="mb-2 text-lg font-semibold text-fg">{t('room.log')}</h2>
                     <div className="max-h-48 space-y-1 overflow-auto rounded-lg border border-border bg-bg-elevated p-2 text-sm text-fg-muted">
-                        {log.length === 0 ? <p>{t('common.empty')}</p> : log.map((l, i) => <div key={i}>{l}</div>)}
+                        {log.length === 0 ? <p>{t('common.empty')}</p> : log.map((l, i) => <div key={i}>{t('room.triggered', { user: l.user, event: l.event })}</div>)}
                     </div>
                 </section>
             </div>

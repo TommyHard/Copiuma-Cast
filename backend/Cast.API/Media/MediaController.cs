@@ -27,7 +27,11 @@ public sealed class MediaController : ControllerBase
     /// </summary>
     [HttpPost]
     [RequestSizeLimit(MaxUploadBytes)]
-    public async Task<ActionResult<MediaDto>> Upload([FromForm] IFormFile file, [FromForm] string title, [FromForm] MediaType type)
+    public async Task<ActionResult<MediaDto>> Upload(
+        [FromForm] IFormFile file, [FromForm] string title, [FromForm] MediaType type,
+        [FromForm] List<string>? tags,
+        [FromForm] int? clipStartMs, [FromForm] int? clipEndMs,
+        [FromForm] int? posXPct, [FromForm] int? posYPct, [FromForm] int? scalePct)
     {
         var userId = User.GetUserId();
         if (userId is null) return Unauthorized();
@@ -48,7 +52,9 @@ public sealed class MediaController : ControllerBase
         await using (var stream = file.OpenReadStream())
             await _storage.UploadMediaAsync(stream, key, file.ContentType);
 
-        var dto = await _media.CreateAsync(userId.Value, title, type, key);
+        var dto = await _media.CreateAsync(userId.Value, title, type, key,
+            tags ?? new(), clipStartMs, clipEndMs,
+            posXPct ?? 50, posYPct ?? 50, scalePct ?? 100);
         return Ok(dto);
     }
 
@@ -62,6 +68,16 @@ public sealed class MediaController : ControllerBase
         if (userId is null) return Unauthorized();
         return Ok(await _media.MyLibraryAsync(userId.Value, ct));
     }
+
+    /// <summary>
+    /// Каталог всех одобренных медиа: поиск (search), фильтр по типу (type) и
+    /// тегу (tag), сортировка (sort: newest|title|cheap|expensive)
+    /// </summary>
+    [HttpGet("catalog")]
+    public async Task<ActionResult<List<MediaDto>>> Catalog(
+        [FromQuery] string? search, [FromQuery] MediaType? type,
+        [FromQuery] string? tag, [FromQuery] string? sort, CancellationToken ct)
+        => Ok(await _media.CatalogAsync(search, type, tag, sort, ct));
 
     /// <summary>
     /// Карточка медиа
@@ -117,4 +133,52 @@ public sealed class MediaController : ControllerBase
         if (adminId is null) return Unauthorized();
         return await _media.RejectAsync(adminId.Value, id, ct) ? Ok() : NotFound();
     }
+
+    /// <summary>
+    /// Все медиа для управления (опц. фильтр по статусу)
+    /// </summary>
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<MediaDto>>> AdminList([FromQuery] MediaStatus? status, CancellationToken ct)
+        => Ok(await _media.AdminListAsync(status, ct));
+
+    /// <summary>
+    /// Приостановить доступ к медиа (нельзя использовать, но не удалено)
+    /// </summary>
+    [HttpPost("{id:guid}/suspend")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Suspend(Guid id, CancellationToken ct)
+    {
+        var adminId = User.GetUserId();
+        if (adminId is null) return Unauthorized();
+        return await _media.SuspendAsync(adminId.Value, id, ct) ? Ok() : NotFound();
+    }
+
+    /// <summary>
+    /// Снять приостановку
+    /// </summary>
+    [HttpPost("{id:guid}/restore")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Restore(Guid id, CancellationToken ct)
+    {
+        var adminId = User.GetUserId();
+        if (adminId is null) return Unauthorized();
+        return await _media.RestoreAsync(adminId.Value, id, ct) ? Ok() : NotFound();
+    }
+
+    /// <summary>
+    /// Админская правка тегов и стоимости
+    /// </summary>
+    [HttpPut("{id:guid}/admin-edit")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminEdit(Guid id, ApproveMediaRequest req, CancellationToken ct)
+        => await _media.AdminEditAsync(id, req.Tags ?? new(), req.CostCoins, ct) ? Ok() : NotFound();
+
+    /// <summary>
+    /// Удалить медиа с сервиса
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+        => await _media.DeleteAsync(id, ct) ? NoContent() : NotFound();
 }

@@ -12,7 +12,8 @@
     "rooms": "Room",
     "friends": "Friends",
     "admin": "Admin",
-    "streamer": "Streamer"
+    "streamer": "Streamer",
+    "mediaCatalog": "Catalog"
   },
   "common": {
     "loading": "Loading…",
@@ -121,7 +122,36 @@
     "clipStart": "Start (ms)",
     "clipEnd": "End (ms)",
     "position": "Position X/Y/Scale (%)",
-    "preview": "Preview"
+    "preview": "Preview",
+    "catalog": "Catalog",
+    "myLibrary": "My library",
+    "browseAll": "Browse all media",
+    "search": "Search by title",
+    "allTypes": "All types",
+    "anyTag": "Any tag",
+    "sortNewest": "Newest",
+    "sortTitle": "Title",
+    "sortCheap": "Cheapest",
+    "sortExpensive": "Most expensive",
+    "sortBy": "Sort",
+    "uploadedBy": "Uploaded by",
+    "approvedBy": "Approved by",
+    "reviewedAt": "Reviewed at",
+    "backToCatalog": "Back to catalog",
+    "addTag": "Add tag",
+    "tagSearch": "Search or create a tag",
+    "clip": "Clipping",
+    "details": "Details",
+    "notFound": "Media not found",
+    "Suspended": "Suspended",
+    "suspend": "Suspend",
+    "restore": "Restore",
+    "delete": "Delete",
+    "confirmDelete": "Delete this media from the service?",
+    "adminActions": "Admin actions",
+    "saveTags": "Save tags & cost",
+    "manageMedia": "Media management",
+    "allStatuses": "All statuses"
   },
   "room": {
     "title": "Room",
@@ -137,7 +167,8 @@
     "disabled": "Disabled",
     "triggered": "{{user}} → {{event}}",
     "insufficient": "Not enough coins",
-    "leave": "Leave"
+    "leave": "Leave",
+    "kicked": "You were removed from the room."
   },
   "bets": {
     "title": "Bets",
@@ -213,7 +244,9 @@
     "newsImage": "Image URL",
     "published": "Published",
     "delete": "Delete",
-    "update": "Update"
+    "update": "Update",
+    "draft": "Draft",
+    "confirmDeleteNews": "Delete this news post and its images?"
   },
   "streamer": {
     "title": "Streamer panel",

@@ -27,6 +27,7 @@ public sealed class CastDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<UserConnection> UserConnections => Set<UserConnection>();
     public DbSet<MediaItem> MediaItems => Set<MediaItem>();
     public DbSet<StreamerTagFilter> StreamerTagFilters => Set<StreamerTagFilter>();
+    public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<StreamerFilterSettings> StreamerFilterSettings => Set<StreamerFilterSettings>();
     public DbSet<RoomEventToggle> RoomEventToggles => Set<RoomEventToggle>();
     public DbSet<StreamerApplication> StreamerApplications => Set<StreamerApplication>();
@@ -83,6 +84,12 @@ public sealed class CastDbContext : IdentityDbContext<ApplicationUser, IdentityR
         {
             e.HasIndex(f => new { f.StreamerId, f.Tag }).IsUnique();
             e.Property(f => f.Tag).HasMaxLength(64);
+        });
+
+        b.Entity<Tag>(e =>
+        {
+            e.HasIndex(t => t.Name).IsUnique();
+            e.Property(t => t.Name).HasMaxLength(64).IsRequired();
         });
 
         b.Entity<StreamerFilterSettings>(e =>

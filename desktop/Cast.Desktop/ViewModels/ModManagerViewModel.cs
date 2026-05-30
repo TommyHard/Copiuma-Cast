@@ -54,6 +54,7 @@ public sealed partial class ModManagerViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка: {ex.Message}";
         }
         finally
@@ -93,6 +94,7 @@ public sealed partial class ModManagerViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка установки: {ex.Message}";
         }
         finally
@@ -116,6 +118,7 @@ public sealed partial class ModManagerViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка удаления: {ex.Message}";
         }
         finally
@@ -138,6 +141,7 @@ public sealed partial class ModManagerViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            AppLog.Info($"Ошибка: {ex.Message}");
             StatusText = $"Ошибка проверки: {ex.Message}";
         }
         finally

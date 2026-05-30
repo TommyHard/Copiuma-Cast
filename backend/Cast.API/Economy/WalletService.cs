@@ -56,6 +56,16 @@ public sealed class WalletService
             .FirstOrDefaultAsync(ct);
 
     /// <summary>
+    /// Баланс зрителя у стримера, создавая кошелёк со стартовым балансом при
+    /// первом обращении (для отображения в комнате до первой траты)
+    /// </summary>
+    public async Task<long> GetOrCreateBalanceAsync(Guid userId, Guid streamerId, CancellationToken ct = default)
+    {
+        await EnsureWalletAsync(userId, streamerId, DateTimeOffset.UtcNow, ct);
+        return await GetBalanceAsync(userId, streamerId, ct);
+    }
+
+    /// <summary>
     /// Списать стоимость с баланса зрителя у стримера. Идемпотентно по
     /// <paramref name="operationId"/>. Кошелёк создаётся при первом обращении.
     /// Бесплатные операции (amount <= 0) проходят без проводки

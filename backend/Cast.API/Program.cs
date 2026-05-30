@@ -62,6 +62,7 @@ public class Program
         builder.Services.AddScoped<SocialService>();
         builder.Services.AddScoped<OnlinePresenceService>();
         builder.Services.AddScoped<MediaService>();
+        builder.Services.AddScoped<Cast.API.Tags.TagService>();
         builder.Services.AddScoped<AnalyticsService>();
         builder.Services.AddHostedService<WatchTimeAccrualService>();
 
@@ -70,11 +71,8 @@ public class Program
             Path.Combine(builder.Environment.ContentRootPath, "Manifests"),
             sp.GetRequiredService<ILogger<ManifestCatalog>>()));
 
-        // --- Каталог пакетов модов для десктоп-клиента (Mod Manager) ---
-        builder.Services.AddSingleton(sp => new ModPackageCatalog(
-            Path.Combine(builder.Environment.ContentRootPath, "ModPackages"),
-            Path.Combine(builder.Environment.ContentRootPath, "ModFiles"),
-            sp.GetRequiredService<ILogger<ModPackageCatalog>>()));
+        // --- Пакеты модов для десктоп-клиента (Mod Manager) из БД игр ---
+        builder.Services.AddScoped<ModService>();
 
         // --- Шина событий (RabbitMQ) ---
         builder.Services.AddSingleton<RabbitMqConnection>();

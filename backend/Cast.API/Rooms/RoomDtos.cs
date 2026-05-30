@@ -28,3 +28,7 @@ public sealed record RoomEventDto(
     bool Enabled);
 
 public sealed record SetEventEnabledRequest(bool Enabled);
+
+public sealed record InviteRequest(string Identifier);
+
+public sealed record InviteLinkDto(string Link);

@@ -20,6 +20,7 @@ public sealed class RoomHubClient : IAsyncDisposable
     private HubConnection? _connection;
 
     public event Action<string>? Log;
+    public event Action<RoomRoster>? RosterChanged;
 
     public RoomHubClient(DesktopOptions options, Func<string> tokenProvider, GameBridgeService bridge)
     {
@@ -57,11 +58,23 @@ public sealed class RoomHubClient : IAsyncDisposable
                 : $"отклонено [{result.Status}]: {result.Reason}");
         });
 
+        // Обновление списка подключённых участников комнаты
+        _connection.On<RoomRoster>("RoomRoster", roster => RosterChanged?.Invoke(roster));
+
         _connection.Reconnected += async _ => { await _connection.InvokeAsync("JoinRoom", code); };
 
         await _connection.StartAsync(ct).ConfigureAwait(false);
         await _connection.InvokeAsync("JoinRoom", code, ct).ConfigureAwait(false);
         Log?.Invoke($"Подключено к комнате {code}.");
+    }
+
+    /// <summary>
+    /// Выгнать (ban=false) или заблокировать (ban=true) зрителя
+    /// </summary>
+    public async Task KickAsync(Guid roomId, Guid targetUserId, bool ban)
+    {
+        if (_connection is not null)
+            await _connection.InvokeAsync("KickViewer", roomId, targetUserId, ban).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()

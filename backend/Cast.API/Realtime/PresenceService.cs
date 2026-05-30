@@ -1,5 +1,6 @@
 using Cast.API.Data;
 using Cast.API.Domain;
+using Cast.Shared.GameBridge;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cast.API.Realtime;
@@ -51,6 +52,46 @@ public sealed class PresenceService
     /// </summary>
     public Task<bool> HasStreamerAsync(Guid roomId, CancellationToken ct = default)
         => _db.RoomConnections.AnyAsync(c => c.RoomId == roomId && c.Role == RoomRole.Streamer, ct);
+
+    /// <summary>
+    /// Идентификаторы соединений пользователя в комнате
+    /// </summary>
+    public Task<List<string>> ConnectionIdsAsync(Guid roomId, Guid userId, CancellationToken ct = default)
+        => _db.RoomConnections
+            .Where(c => c.RoomId == roomId && c.UserId == userId)
+            .Select(c => c.ConnectionId)
+            .ToListAsync(ct);
+
+    /// <summary>
+    /// Снять все присутствия пользователя в комнате (при кике)
+    /// </summary>
+    public Task RemoveUserAsync(Guid roomId, Guid userId, CancellationToken ct = default)
+        => _db.RoomConnections
+            .Where(c => c.RoomId == roomId && c.UserId == userId)
+            .ExecuteDeleteAsync(ct);
+
+    /// <summary>
+    /// Ростер комнаты: подключённые участники (без дублей по пользователю) с
+    /// отображаемым именем и ролью, плюс их количество
+    /// </summary>
+    public async Task<RoomRoster> GetRosterAsync(Guid roomId, CancellationToken ct = default)
+    {
+        var rows = await (from c in _db.RoomConnections
+                          where c.RoomId == roomId
+                          join u in _db.Users on c.UserId equals u.Id
+                          select new { c.UserId, u.DisplayName, c.Role })
+            .ToListAsync(ct);
+
+        var members = rows
+            .GroupBy(r => r.UserId)
+            .Select(g => new RoomMember(
+                g.Key.ToString(),
+                g.First().DisplayName,
+                g.First().Role.ToString()))
+            .ToList();
+
+        return new RoomRoster(members.Count, members);
+    }
 
     /// <summary>
     /// Активные зрители по комнатам: (RoomId, UserId) без дублей. Стримеры

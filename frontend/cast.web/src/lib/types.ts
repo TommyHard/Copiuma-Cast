@@ -69,7 +69,7 @@ export interface GameDetail {
 
 // ---- Media ----
 export type MediaType = 'Sound' | 'Video';
-export type MediaStatus = 'Pending' | 'Approved' | 'Rejected';
+export type MediaStatus = 'Pending' | 'Approved' | 'Rejected' | 'Suspended';
 
 export interface MediaItem {
     id: string;
@@ -90,6 +90,9 @@ export interface MediaItem {
     scalePct: number;
     processed: boolean;
     createdAt: string;
+    ownerName: string | null;
+    approvedByName: string | null;
+    reviewedAt: string | null;
 }
 
 // ---- Rooms ----

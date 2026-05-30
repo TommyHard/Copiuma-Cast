@@ -1,8 +1,10 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { MediaItem, MediaType } from '@/lib/types';
+import { TagInput } from '@/components/TagInput';
 
 function MediaCard({ m }: { m: MediaItem }) {
   const { t } = useTranslation();
@@ -27,7 +29,7 @@ function MediaCard({ m }: { m: MediaItem }) {
   return (
     <div className="rounded-lg border border-border bg-bg-elevated p-3">
       <div className="flex items-center justify-between">
-        <span className="font-medium text-fg">{m.title}</span>
+        <Link to={`/media/${m.id}`} className="font-medium text-fg hover:text-accent hover:underline">{m.title}</Link>
         <span className="rounded bg-bg-accent px-2 py-0.5 text-xs text-accent">{m.costCoins}</span>
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
@@ -77,6 +79,8 @@ export function MediaPage() {
     const fileRef = useRef<HTMLInputElement>(null);
     const [title, setTitle] = useState('');
     const [type, setType] = useState<MediaType>('Sound');
+    const [tags, setTags] = useState<string[]>([]);
+    const [clip, setClip] = useState({ start: 0, end: 0, x: 50, y: 50, scale: 100 });
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -96,8 +100,16 @@ export function MediaPage() {
             form.append('file', file);
             form.append('title', title);
             form.append('type', type);
+            tags.forEach((tg) => form.append('tags', tg));
+            form.append('clipStartMs', String(clip.start));
+            form.append('clipEndMs', String(clip.end));
+            form.append('posXPct', String(clip.x));
+            form.append('posYPct', String(clip.y));
+            form.append('scalePct', String(clip.scale));
             await api.post('/media', form);
             setTitle('');
+            setTags([]);
+            setClip({ start: 0, end: 0, x: 50, y: 50, scale: 100 });
             if (fileRef.current) fileRef.current.value = '';
             await qc.invalidateQueries({ queryKey: ['media'] });
         } catch {
@@ -123,6 +135,22 @@ export function MediaPage() {
                         className="rounded-md bg-accent px-4 py-2 font-medium text-accent-fg hover:opacity-90 disabled:opacity-50">
                         {t('media.upload')}
                     </button>
+                </div>
+                <div>
+                    <label className="mb-1 block text-xs text-fg-muted">{t('media.tags')}</label>
+                    <TagInput value={tags} onChange={setTags} />
+                </div>
+                <div className="space-y-2 rounded-md border border-border p-2">
+                    <span className="text-xs text-fg-muted">{t('media.clip')} / {t('media.position')}</span>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
+                        <label>{t('media.clipStart')}<input className="w-20 rounded-md border border-border bg-bg px-2 py-1 text-sm text-fg outline-none focus:border-accent" type="number" min={0} value={clip.start}
+                            onChange={(e) => setClip((c) => ({ ...c, start: +e.target.value }))} /></label>
+                        <label>{t('media.clipEnd')}<input className="w-20 rounded-md border border-border bg-bg px-2 py-1 text-sm text-fg outline-none focus:border-accent" type="number" min={0} value={clip.end}
+                            onChange={(e) => setClip((c) => ({ ...c, end: +e.target.value }))} /></label>
+                        <input className="w-20 rounded-md border border-border bg-bg px-2 py-1 text-sm text-fg outline-none focus:border-accent" type="number" min={0} max={100} value={clip.x} onChange={(e) => setClip((c) => ({ ...c, x: +e.target.value }))} />
+                        <input className="w-20 rounded-md border border-border bg-bg px-2 py-1 text-sm text-fg outline-none focus:border-accent" type="number" min={0} max={100} value={clip.y} onChange={(e) => setClip((c) => ({ ...c, y: +e.target.value }))} />
+                        <input className="w-20 rounded-md border border-border bg-bg px-2 py-1 text-sm text-fg outline-none focus:border-accent" type="number" min={10} max={400} value={clip.scale} onChange={(e) => setClip((c) => ({ ...c, scale: +e.target.value }))} />
+                    </div>
                 </div>
                 <p className="text-xs text-fg-muted">{t('media.uploadHint')}</p>
                 {error && <p className="text-sm text-danger">{error}</p>}

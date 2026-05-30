@@ -64,6 +64,23 @@ public sealed class StorageService
     }
 
     /// <summary>
+    /// Удалить объект медиа из приватного бакета
+    /// </summary>
+    public async Task DeleteMediaAsync(string? key, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+        try
+        {
+            await _client.DeleteObjectAsync(_options.MediaBucket, key, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при удалении медиа {Key} из приватного бакета", key);
+        }
+    }
+
+    /// <summary>
     /// Удалить файл из публичного бакета
     /// </summary>
     public async Task DeletePublicAsync(string key, CancellationToken ct = default)

@@ -8,11 +8,14 @@ import { GamesPage } from '@/features/games/GamesPage';
 import { GameDetailPage } from '@/features/games/GameDetailPage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
 import { MediaPage } from '@/features/media/MediaPage';
+import { MediaCatalogPage } from '@/features/media/MediaCatalogPage';
+import { MediaDetailPage } from '@/features/media/MediaDetailPage';
 import { RoomPage } from '@/features/rooms/RoomPage';
 import { SocialPage } from '@/features/social/SocialPage';
 import { AdminPage } from '@/features/admin/AdminPage';
 import { StreamerPage } from '@/features/streamer/StreamerPage';
 import { NewsDetailPage } from '@/features/news/NewsDetailPage';
+import { OverlayPage } from '@/features/overlay/OverlayPage';
 import { useAuthStore } from '@/store/auth';
 
 function DesktopAutoRedirect() {
@@ -34,6 +37,7 @@ export function AppRoutes() {
     const authed = useAuthStore((s) => !!s.token);
     return (
         <Routes>
+            <Route path="/overlay" element={<OverlayPage />} />
             <Route path="/welcome" element={<LandingPage />} />
             <Route path="/login" element={authed ? <DesktopAutoRedirect /> : <AuthForm mode="login" />} />
             <Route path="/register" element={authed ? <Navigate to="/" replace /> : <AuthForm mode="register" />} />
@@ -45,6 +49,8 @@ export function AppRoutes() {
                     <Route path="games" element={<GamesPage />} />
                     <Route path="games/:slug" element={<GameDetailPage />} />
                     <Route path="media" element={<MediaPage />} />
+                    <Route path="media/catalog" element={<MediaCatalogPage />} />
+                    <Route path="media/:id" element={<MediaDetailPage />} />
                     <Route path="rooms" element={<RoomPage />} />
                     <Route path="friends" element={<SocialPage />} />
                     <Route path="profile" element={<ProfilePage />} />

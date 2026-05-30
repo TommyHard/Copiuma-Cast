@@ -45,16 +45,22 @@ public sealed partial class MainViewModel : ObservableObject
             _bridge = new GameBridgeService();
 
             _mods = new ModManagerViewModel(new ModManagerService(_api), _api);
-            _room = new RoomViewModel(_api, _options, _bridge);
+            _room = new RoomViewModel(_api, _options, _bridge)
+            {
+                HubConnector = (code, ct) => ConnectHubAsync(code, ct),
+                KickConnector = (roomId, targetId, ban) => _hub is not null ? _hub.KickAsync(roomId, targetId, ban) : Task.CompletedTask
+            };
             _launch = new LaunchViewModel(_options, _bridge);
             _debug = new DebugViewModel(_bridge);
 
             IsLoggedIn = true;
             Username = "Streamer"; // Имя приходит из токена; пока заглушка
+            AppLog.Info("Авторизация выполнена.");
             Navigate("mods");
         }
         catch (Exception ex)
         {
+            AppLog.Error($"Ошибка авторизации: {ex.Message}");
             MessageBox.Show(ex.Message, "Ошибка авторизации", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -62,6 +68,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LogoutAsync()
     {
+        AppLog.Info("Выход из аккаунта.");
         IsLoggedIn = false;
         CurrentPage = null;
         _api = null;
@@ -76,6 +83,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Navigate(string page)
     {
+        AppLog.Info($"Навигация: {page}");
         SelectedNav = page;
         CurrentPage = page switch
         {
@@ -104,6 +112,7 @@ public sealed partial class MainViewModel : ObservableObject
             await _hub.DisposeAsync();
         _hub = new RoomHubClient(_options, () => _auth.Token!, _bridge);
         _hub.Log += msg => _room?.AppendLog(msg);
+        _hub.RosterChanged += roster => _room?.UpdateRoster(roster);
         await _hub.ConnectAsync(roomCode, ct);
     }
 }

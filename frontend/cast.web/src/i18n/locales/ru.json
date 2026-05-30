@@ -12,7 +12,8 @@
     "rooms": "Комната",
     "friends": "Друзья",
     "admin": "Админ",
-    "streamer": "Стример"
+    "streamer": "Стример",
+    "mediaCatalog": "Каталог"
   },
   "common": {
     "loading": "Загрузка…",
@@ -121,7 +122,36 @@
     "clipStart": "Начало (мс)",
     "clipEnd": "Конец (мс)",
     "position": "Позиция X/Y/Масштаб (%)",
-    "preview": "Превью"
+    "preview": "Превью",
+    "catalog": "Каталог",
+    "myLibrary": "Моя медиатека",
+    "browseAll": "Все медиа",
+    "search": "Поиск по названию",
+    "allTypes": "Все типы",
+    "anyTag": "Любой тег",
+    "sortNewest": "Новые",
+    "sortTitle": "Название",
+    "sortCheap": "Дешевле",
+    "sortExpensive": "Дороже",
+    "sortBy": "Сортировка",
+    "uploadedBy": "Загрузил",
+    "approvedBy": "Одобрил",
+    "reviewedAt": "Проверено",
+    "backToCatalog": "Назад в каталог",
+    "addTag": "Добавить тег",
+    "tagSearch": "Найти или создать тег",
+    "clip": "Обрезка",
+    "details": "Подробнее",
+    "notFound": "Медиа не найдено",
+    "Suspended": "Приостановлено",
+    "suspend": "Приостановить",
+    "restore": "Восстановить",
+    "delete": "Удалить",
+    "confirmDelete": "Удалить это медиа с сервиса?",
+    "adminActions": "Действия админа",
+    "saveTags": "Сохранить теги и цену",
+    "manageMedia": "Управление медиа",
+    "allStatuses": "Все статусы"
   },
   "room": {
     "title": "Комната",
@@ -137,7 +167,8 @@
     "disabled": "Выключено",
     "triggered": "{{user}} → {{event}}",
     "insufficient": "Недостаточно средств",
-    "leave": "Выйти"
+    "leave": "Выйти",
+    "kicked": "Вас удалили из комнаты."
   },
   "bets": {
     "title": "Ставки",
@@ -213,7 +244,9 @@
     "newsImage": "URL картинки",
     "published": "Опубликовано",
     "delete": "Удалить",
-    "update": "Обновить"
+    "update": "Обновить",
+    "draft": "Черновик",
+    "confirmDeleteNews": "Удалить новость и все её картинки?"
   },
   "streamer": {
     "title": "Панель стримера",

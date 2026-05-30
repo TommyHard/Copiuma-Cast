@@ -6,7 +6,11 @@ public enum MediaStatus
 {
     Pending = 0,
     Approved = 1,
-    Rejected = 2
+    Rejected = 2,
+    /// <summary>
+    /// Доступ приостановлен админом: использовать нельзя, но не удалено
+    /// </summary>
+    Suspended = 3
 }
 
 /// <summary>

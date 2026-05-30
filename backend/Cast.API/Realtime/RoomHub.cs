@@ -67,6 +67,8 @@ public sealed class RoomHub : Hub
         // Присутствие — основа watch-time и Dead Man's Switch
         await _presence.JoinAsync(room.Id, userId, role, Context.ConnectionId);
 
+        await BroadcastRosterAsync(room.Id);
+
         return RoomDto.From(room, role);
     }
 
@@ -153,6 +155,35 @@ public sealed class RoomHub : Hub
     }
 
     /// <summary>
+    /// Стример выгоняет (ban=false) или блокирует (ban=true) зрителя. Соединения
+    /// зрителя получают "Kicked", присутствие снимается, ростер обновляется
+    /// </summary>
+    public async Task KickViewer(Guid roomId, Guid targetUserId, bool ban)
+    {
+        var userId = Context.User?.GetUserId()
+            ?? throw new HubException("Не авторизован.");
+
+        if (!await _rooms.KickAsync(userId, roomId, targetUserId, ban))
+            throw new HubException("Недостаточно прав или нельзя выгнать этого участника.");
+
+        var conns = await _presence.ConnectionIdsAsync(roomId, targetUserId);
+        if (conns.Count > 0)
+            await Clients.Clients(conns).SendAsync("Kicked", roomId);
+
+        await _presence.RemoveUserAsync(roomId, targetUserId);
+        await BroadcastRosterAsync(roomId);
+    }
+
+    /// <summary>
+    /// Разослать актуальный ростер комнаты всем её участникам
+    /// </summary>
+    private async Task BroadcastRosterAsync(Guid roomId)
+    {
+        var roster = await _presence.GetRosterAsync(roomId);
+        await Clients.Group(RoomGroup(roomId)).SendAsync("RoomRoster", roster);
+    }
+
+    /// <summary>
     /// При разрыве соединения снимаем присутствие. Если ушло последнее
     /// соединение стримера — срабатывает Dead Man's Switch: открытые ставки
     /// комнаты отменяются с возвратом средств зрителям
@@ -165,6 +196,9 @@ public sealed class RoomHub : Hub
             var (roomId, role) = left.Value;
             if (role == Domain.RoomRole.Streamer && !await _presence.HasStreamerAsync(roomId))
                 await _betting.CancelOpenBetsForRoomAsync(roomId, "streamer_left");
+
+            // Кто-то отключился — рассылаем обновлённый ростер
+            await BroadcastRosterAsync(roomId);
         }
 
         await base.OnDisconnectedAsync(exception);

@@ -182,7 +182,9 @@ namespace cast {
         device->SetFVF(kOverlayFVF);
 
         device->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-        device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        // CEF OSR отдаёт premultiplied alpha, поэтому SRCBLEND = ONE (не SRCALPHA),
+        // иначе на сглаженных краях текста и полупрозрачных панелях тёмные ореолы
+        device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
         device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
         device->SetRenderState(D3DRS_ZENABLE, FALSE);
         device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);

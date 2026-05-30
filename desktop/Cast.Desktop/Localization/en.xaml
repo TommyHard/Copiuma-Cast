@@ -48,6 +48,9 @@
     <sys:String x:Key="RoomInvitePlaceholder">@username</sys:String>
     <sys:String x:Key="RoomOnline">Online:</sys:String>
     <sys:String x:Key="RoomNoRoom">No active room</sys:String>
+    <sys:String x:Key="RoomKick">Kick</sys:String>
+    <sys:String x:Key="RoomBlock">Block</sys:String>
+    <sys:String x:Key="RoomMembers">Connected viewers:</sys:String>
     <sys:String x:Key="RoomConnected">Connected</sys:String>
 
     <!-- Launch -->

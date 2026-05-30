@@ -135,7 +135,12 @@ namespace cast {
                 }
             }
 
-            if (overlay::IsVisible() && g_renderer.IsInitialized() && !s_renderFault)
+            // Рендерим оверлей ВСЕГДА (не только когда открыт): страница сама
+            // решает, что показывать — полноценный UI в открытом состоянии или
+            // лишь подсказку-тост в закрытом. Перехват ввода по-прежнему завязан
+            // на видимость, поэтому в закрытом состоянии игра
+            // полностью управляема, а оверлей прозрачен
+            if (g_renderer.IsInitialized() && !s_renderFault)
             {
                 if (!SafeRender(device))
                 {
@@ -169,9 +174,13 @@ namespace cast {
             HWND fallbackWnd = CreateWindowExW(0, wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW,
                 0, 0, 1, 1, nullptr, nullptr, wc.hInstance, nullptr);
 
-            HWND targetWnd = FindGameWindow();
-            if (!targetWnd) targetWnd = GetForegroundWindow();
-            if (!targetWnd) targetWnd = fallbackWnd;
+            // Временное устройство создаём на СОБСТВЕННОМ скрытом окне,
+            // а НЕ на окне игры. Игра уже владеет D3D9-устройством на своём окне
+            // (часто в эксклюзивном fullscreen) — создание второго устройства на
+            // нём падает с D3DERR_DEVICELOST. Адреса EndScene/Reset в vtable
+            // одинаковы для любого устройства того же d3d9.dll, поэтому хватает
+            // throwaway-устройства на скрытом окне
+            HWND targetWnd = fallbackWnd;
 
             bool ok = false;
             if (IDirect3D9* d3d = Direct3DCreate9(D3D_SDK_VERSION))

@@ -72,6 +72,59 @@
                 <Button Content="{DynamicResource RoomClose}" Style="{StaticResource SecondaryButton}"
                         Command="{Binding CloseRoomCommand}" HorizontalAlignment="Left"
                         Foreground="{DynamicResource ErrorBrush}" Padding="12,6"/>
+
+                <!-- Connected viewers -->
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,4">
+                    <TextBlock Text="{DynamicResource RoomMembers}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource FgPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource RoomOnline}" Margin="12,0,4,0"
+                               Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding OnlineCount}" Foreground="{DynamicResource AccentBrush}"
+                               FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ListBox ItemsSource="{Binding Members}" MaxHeight="160" Margin="0,0,0,4"
+                         Background="{DynamicResource BgTertiaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource FgPrimaryBrush}"/>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                    <TextBlock Text="{Binding Role}" VerticalAlignment="Center" Margin="0,0,8,0"
+                                               Foreground="{DynamicResource FgSecondaryBrush}" FontSize="11"/>
+                                    <Button Content="{DynamicResource RoomKick}" Padding="6,2" Margin="0,0,4,0"
+                                            Command="{Binding DataContext.KickCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Role}" Value="Streamer">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Content="{DynamicResource RoomBlock}" Padding="6,2"
+                                            Command="{Binding DataContext.BlockCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Role}" Value="Streamer">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </StackPanel>
         </Border>
 

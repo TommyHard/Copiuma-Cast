@@ -11,6 +11,11 @@ public sealed class ModPackageInfo
     public string? Description { get; set; }
 
     /// <summary>
+    /// Прямая ссылка на .zip-архив мода (скачивается и распаковывается целиком)
+    /// </summary>
+    public string ArchiveUrl { get; set; } = string.Empty;
+
+    /// <summary>
     /// Файлы библиотек (зависимостей), устанавливаемые отдельно
     /// </summary>
     public List<ModFileEntry> Libraries { get; set; } = new();
@@ -32,11 +37,6 @@ public sealed class ModFileEntry
     /// Путь относительно директории игры
     /// </summary>
     public string RelativePath { get; set; } = string.Empty;
-
-    /// <summary>
-    /// URL для скачивания
-    /// </summary>
-    public string DownloadUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// SHA-256 хеш файла для проверки целостности

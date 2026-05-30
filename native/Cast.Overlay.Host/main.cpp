@@ -47,7 +47,24 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
     settings.windowless_rendering_enabled = true;
     settings.no_sandbox = true;
 
-    CefInitialize(main_args, settings, app, nullptr);
+    // Уникальный кэш на каждый запуск (по PID игры). Без явного root_cache_path
+    // CEF берёт значение по умолчанию и включает process-singleton: если от
+    // прошлого запуска осталась блокировка кэша или живой суб-процесс CEF,
+    // новый инстанс трактуется как "relaunch", и Chromium открывает ОБЫЧНОЕ
+    // ОКОННОЕ окно браузера вместо off-screen. Отдельный путь на PID убирает
+    // коллизию singleton'а
+    {
+        char temp[MAX_PATH] = {};
+        GetTempPathA(MAX_PATH, temp);
+        std::string base = std::string(temp) + "CopiumaCast";
+        CreateDirectoryA(base.c_str(), nullptr);
+        CreateDirectoryA((base + "\\cef").c_str(), nullptr);
+        std::string cachePath = base + "\\cef\\" + std::to_string(gamePid);
+        CefString(&settings.root_cache_path).FromString(cachePath);
+    }
+
+    if (!CefInitialize(main_args, settings, app, nullptr))
+        return 1;
 
     CefRefPtr<cast::OverlayClient> client(new cast::OverlayClient(gamePid, width, height));
 
@@ -56,6 +73,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
 
     CefBrowserSettings browser_settings;
     browser_settings.windowless_frame_rate = 60;
+    // Прозрачный фон OSR (ARGB=0). Без этого CEF рендерит непрозрачный белый
+    // фон, и игра под оверлеем не видна. Прозрачные участки страницы пропускают
+    // картинку игры — как в Steam-оверлее. Страница тоже должна иметь
+    // прозрачный фон (html, body { background: transparent })
+    browser_settings.background_color = 0;
 
     CefBrowserHost::CreateBrowser(window_info, client, url, browser_settings, nullptr, nullptr);
 

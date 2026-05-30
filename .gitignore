@@ -5,6 +5,8 @@ obj/
 *.suo
 .vs/
 *.pdb
+Win32/
+x64/
 
 # --- Node ---
 node_modules/

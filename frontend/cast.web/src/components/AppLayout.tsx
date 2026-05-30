@@ -10,7 +10,8 @@ const navItems = [
   { to: '/', key: 'nav.dashboard', end: true },
   { to: '/games', key: 'nav.games', end: false },
   { to: '/rooms', key: 'nav.rooms', end: false },
-  { to: '/media', key: 'nav.media', end: false },
+  { to: '/media', key: 'nav.media', end: true },
+  { to: '/media/catalog', key: 'nav.mediaCatalog', end: false },
   { to: '/friends', key: 'nav.friends', end: false },
   { to: '/profile', key: 'nav.profile', end: false },
 ];
