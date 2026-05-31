@@ -14,9 +14,6 @@ namespace cast::overlay {
         HWND    g_targetWnd = nullptr;
         WNDPROC g_origWndProc = nullptr;
 
-        // Горячая клавиша оверлея
-        constexpr int kToggleKey = VK_F8;
-
         // --- Хуки курсорных API --------------------------------------------
         // Игры с обзором мышью каждый кадр возвращают курсор в центр
         // через SetCursorPos и/или зажимают его ClipCursor. Подклассинг WndProc
@@ -254,7 +251,7 @@ namespace cast::overlay {
 
         LRESULT CALLBACK HookedWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
-            if (msg == WM_KEYDOWN && wParam == kToggleKey && (lParam & (1 << 30)) == 0)
+            if (msg == WM_KEYDOWN && wParam == static_cast<WPARAM>(ToggleKey()) && (lParam & (1 << 30)) == 0)
             {
                 ToggleVisible();
                 return 0;
@@ -275,7 +272,18 @@ namespace cast::overlay {
                 }
             }
 
-            return CallWindowProcW(g_origWndProc, hwnd, msg, wParam, lParam);
+            const LRESULT result = CallWindowProcW(g_origWndProc, hwnd, msg, wParam, lParam);
+
+            // После возврата фокуса в игру (Alt+Tab) игра в своём WM_ACTIVATE снова
+            // прячет/клипует курсор. Если оверлей открыт — заново показываем курсор,
+            // иначе он "пропадает" и мышь в оверлее перестаёт работать
+            if (msg == WM_ACTIVATE && LOWORD(wParam) != WA_INACTIVE && IsVisible())
+            {
+                RestoreCursor();
+                ShowSystemCursor();
+            }
+
+            return result;
         }
 
     }

@@ -52,7 +52,8 @@ public sealed class StreamerApplicationController : ControllerBase
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new MyApplicationDto(a.Id, a.Status, a.Message, a.CreatedAt))
             .FirstOrDefaultAsync(ct);
-        return app is null ? NotFound() : Ok(app);
+        // 204 вместо 404: "нет заявки" — ок состояние
+        return app is null ? NoContent() : Ok(app);
     }
 }
 

@@ -1,6 +1,6 @@
 services:
   # ==========================================
-  # ИНФРАСТРУКТУРА
+  # Infrastructure
   # ==========================================
   postgres:
     image: postgres:16-alpine
@@ -60,7 +60,7 @@ services:
       retries: 5
 
   # ==========================================
-  # БЭКЕНД
+  # Backend
   # ==========================================
   cast-api:
     build:
@@ -73,6 +73,7 @@ services:
       - RabbitMq__Host=rabbitmq
       - RabbitMq__User=guest
       - RabbitMq__Password=guest
+      - Storage__PublicEndpoint=http://localhost:9000
       - Storage__Endpoint=http://minio:9000
       - Storage__PublicBaseUrl=http://localhost:5208/files
       - Storage__AccessKey=cast
@@ -86,6 +87,8 @@ services:
       rabbitmq:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   cast-worker:

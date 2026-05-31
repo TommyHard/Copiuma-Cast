@@ -13,6 +13,8 @@
 #include <atomic>
 #include <thread>
 #include <memory>
+#include <string>
+#include <fstream>
 
 namespace cast::overlay {
     namespace {
@@ -30,7 +32,9 @@ namespace cast::overlay {
         // InputHook активен, он становится единственным владельцем горячей
         // клавиши, а этот цикл перестаёт переключать видимость, чтобы F8 не
         // обрабатывалась дважды
-        constexpr int kToggleKey = VK_F8;
+        // Клавиша открытия оверлея. По умолчанию F8, но Cast.Desktop может задать
+        // другую (настройка пользователя) через файл
+        std::atomic<int> g_toggleKey{ VK_F8 };
 
         std::vector<std::unique_ptr<IGraphicsBackend>> g_backends;
 
@@ -41,7 +45,7 @@ namespace cast::overlay {
             {
                 if (!InputHook::IsActive())
                 {
-                    const bool down = (GetAsyncKeyState(kToggleKey) & 0x8000) != 0;
+                    const bool down = (GetAsyncKeyState(ToggleKey()) & 0x8000) != 0;
                     if (down && !prevDown)
                         ToggleVisible();
                     prevDown = down;
@@ -52,10 +56,29 @@ namespace cast::overlay {
 
     }
 
+    int ToggleKey() { return g_toggleKey.load(std::memory_order_relaxed); }
+
+    void LoadToggleKey()
+    {
+        wchar_t temp[MAX_PATH]{};
+        GetTempPathW(MAX_PATH, temp);
+        const std::wstring path = std::wstring(temp) + L"CopiumaCast\\overlay-hotkey";
+        std::ifstream f(path);
+        if (!f) return;
+        int vk = 0;
+        if (f >> vk && vk > 0 && vk < 256)
+        {
+            g_toggleKey.store(vk, std::memory_order_relaxed);
+            CAST_LOG_INFO("Клавиша оверлея переопределена: VK={}", vk);
+        }
+    }
+
     void Initialize()
     {
         Logger::Init();
         CAST_LOG_INFO("Overlay::Initialize");
+
+        LoadToggleKey(); // клавиша открытия из настроек пользователя (или F8)
 
         // Инициализируем MinHook глобально
         MH_STATUS status = MH_Initialize();

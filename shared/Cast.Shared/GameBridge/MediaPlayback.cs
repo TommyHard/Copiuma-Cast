@@ -11,11 +11,32 @@ public sealed class MediaPlayback
     public string? WebmUrl { get; set; }
     public string? OggUrl { get; set; }
 
+    /// <summary>
+    /// Ник отправителя (для подписи в оверлее)
+    /// </summary>
+    public string SenderName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Стоимость отправки (для подписи в оверлее)
+    /// </summary>
+    public long Cost { get; set; }
+
+    /// <summary>
+    /// true — видео (есть картинка), false — только звук
+    /// </summary>
+    public bool IsVideo { get; set; }
+
     public int? ClipStartMs { get; set; }
     public int? ClipEndMs { get; set; }
     public int PosXPct { get; set; } = 50;
     public int PosYPct { get; set; } = 50;
     public int ScalePct { get; set; } = 100;
+
+    /// <summary>
+    /// Идентификатор списания (для возврата баллов, если воспроизведение не
+    /// удалось). null, если списания не было (например, у владельца)
+    /// </summary>
+    public string? ChargeId { get; set; }
 
     public MediaPlayback() { }
 }

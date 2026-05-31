@@ -4,7 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="600">
-    <Grid Margin="24,16">
+    <Grid Margin="24 16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -32,13 +32,19 @@
 
                 <TextBlock Text="{DynamicResource LaunchManifest}" Foreground="{DynamicResource FgSecondaryBrush}"
                            Margin="0,0,0,4"/>
-                <DockPanel>
+                <DockPanel Margin="0,0,0,12">
                     <Button Content="{DynamicResource ModsBrowse}" DockPanel.Dock="Right"
                             Style="{StaticResource SecondaryButton}" Command="{Binding BrowseManifestCommand}"
                             Padding="10,4" Margin="8,0,0,0"/>
                     <TextBox Text="{Binding ManifestPath, UpdateSourceTrigger=PropertyChanged}"
                              VerticalContentAlignment="Center"/>
                 </DockPanel>
+
+                <TextBlock Text="{DynamicResource LaunchArgs}" Foreground="{DynamicResource FgSecondaryBrush}"
+                           Margin="0,0,0,4"/>
+                <TextBox Text="{Binding LaunchArguments, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalContentAlignment="Center"
+                         ToolTip="{DynamicResource LaunchArgsHint}"/>
             </StackPanel>
         </Border>
 

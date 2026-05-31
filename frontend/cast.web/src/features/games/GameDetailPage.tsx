@@ -3,9 +3,23 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import type { GameDetail, GameStats } from '@/lib/types';
+import type { GameDetail, GameEvent, GameStats } from '@/lib/types';
 import { useState } from 'react';
 import { GameEditorModal } from './GameEditorModal';
+import { basicHtml } from '@/lib/html';
+
+// Группировка событий по категории с сохранением порядка появления.
+// События без категории попадают в группу с пустым ключом
+function groupByCategory<T extends { category: string | null }>(items: T[]): [string, T[]][] {
+    const order: string[] = [];
+    const map = new Map<string, T[]>();
+    for (const it of items) {
+        const key = it.category ?? '';
+        if (!map.has(key)) { map.set(key, []); order.push(key); }
+        map.get(key)!.push(it);
+    }
+    return order.map((k) => [k, map.get(k)!]);
+}
 
 function StatsTable({ title, s }: { title: string; s: GameStats }) {
     const { t } = useTranslation();
@@ -97,7 +111,7 @@ export function GameDetailPage() {
                 <div className="p-4">
                     <h1 className="text-2xl font-bold text-fg">{data.game.title}</h1>
                     {data.game.genre && <p className="text-sm text-fg-muted">{t('games.genre')}: {data.game.genre}</p>}
-                    {data.game.description && <p className="mt-4 text-sm text-fg">{data.game.description}</p>}
+                    {data.game.description && <p className="mt-4 whitespace-pre-line text-sm text-fg" dangerouslySetInnerHTML={{ __html: basicHtml(data.game.description) }} />}
                 </div>
             </header>
 
@@ -106,31 +120,40 @@ export function GameDetailPage() {
                 {data.interactions.length === 0 ? (
                     <p className="text-sm text-fg-muted">Взаимодействия не загружены или манифест пуст.</p>
                 ) : (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {data.interactions.map((e) => {
-                            const isGloballyDisabled = data.globallyDisabledEventIds?.includes(e.id) ?? false;
-                            const isCurrentlyEnabled = e.enabled && !isGloballyDisabled;
+                    <div className="space-y-4">
+                        {groupByCategory<GameEvent>(data.interactions).map(([category, events]) => (
+                            <div key={category || '__none'}>
+                                <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-fg-muted">
+                                    {category || t('games.uncategorized')}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    {events.map((e) => {
+                                        const isGloballyDisabled = data.globallyDisabledEventIds?.includes(e.id) ?? false;
+                                        const isCurrentlyEnabled = e.enabled && !isGloballyDisabled;
 
-                            return (
-                                <div key={e.id} className={`rounded-lg border border-border p-3 ${isCurrentlyEnabled ? 'bg-bg-elevated' : 'bg-bg opacity-60'}`}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-fg">{e.title}</span>
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => toggleGlobalEvent(e.id, isCurrentlyEnabled)}
-                                                    className={`text-xs px-2 py-0.5 rounded ${isCurrentlyEnabled ? 'border border-danger text-danger hover:bg-danger/10' : 'border border-success text-success hover:bg-success/10'}`}
-                                                >
-                                                    {isCurrentlyEnabled ? 'Выключить' : 'Включить'}
-                                                </button>
-                                            )}
-                                        </div>
-                                        <span className="rounded bg-bg-accent px-2 py-0.5 text-xs text-accent">{e.costCoins}</span>
-                                    </div>
-                                    {e.description && <p className="mt-1 text-sm text-fg-muted">{e.description}</p>}
+                                        return (
+                                            <div key={e.id} className={`rounded-lg border border-border p-3 ${isCurrentlyEnabled ? 'bg-bg-elevated' : 'bg-bg opacity-60'}`}>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-fg">{e.title}</span>
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={() => toggleGlobalEvent(e.id, isCurrentlyEnabled)}
+                                                                className={`text-xs px-2 py-0.5 rounded ${isCurrentlyEnabled ? 'border border-danger text-danger hover:bg-danger/10' : 'border border-success text-success hover:bg-success/10'}`}
+                                                            >
+                                                                {isCurrentlyEnabled ? 'Выключить' : 'Включить'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <span className="rounded bg-bg-accent px-2 py-0.5 text-xs text-accent">{e.costCoins}</span>
+                                                </div>
+                                                {e.description && <p className="mt-1 whitespace-pre-line text-sm text-fg-muted" dangerouslySetInnerHTML={{ __html: basicHtml(e.description) }} />}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 )}
             </section>

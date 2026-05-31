@@ -26,6 +26,18 @@ namespace cast {
         : m_gamePid(gamePid), m_width(width), m_height(height)
     {
         m_writer.Open(gamePid);
+        // Следим за жизнью процесса игры, чтобы завершить хост вместе с ней
+        if (gamePid != 0)
+            m_gameProcess = OpenProcess(SYNCHRONIZE, FALSE, gamePid);
+    }
+
+    OverlayClient::~OverlayClient()
+    {
+        if (m_gameProcess)
+        {
+            CloseHandle(m_gameProcess);
+            m_gameProcess = nullptr;
+        }
     }
 
     void OverlayClient::GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect)
@@ -104,6 +116,15 @@ namespace cast {
         if (!m_browser)
             return; // браузер закрыт — цикл больше не перезапускаем
 
+        // Игра завершилась — закрываем браузер (OnBeforeClose остановит цикл
+        // сообщений), чтобы хост не превращался в зомби-процесс
+        if (m_gameProcess && WaitForSingleObject(m_gameProcess, 0) == WAIT_OBJECT_0)
+        {
+            if (CefRefPtr<CefBrowserHost> host = m_browser->GetHost())
+                host->CloseBrowser(/*force_close*/ true);
+            return; // не перезапускаем опрос
+        }
+
         // DLL могла подняться позже хоста — пробуем открыть отображение лениво
         if (!m_control.IsOpen())
             m_control.Open(m_gamePid);
@@ -121,10 +142,13 @@ namespace cast {
                     m_browser->GetHost()->WasResized(); // CEF перечитает GetViewRect
             }
 
-            // Фокус: по фронту открытия оверлея возвращаем фокус ввода в CEF.
-            // Без этого после ухода фокуса в другое окно
+            // Фокус ввода в CEF. Раньше выставлялся только по фронту открытия,
+            // из-за чего после Alt+Tab и возврата в игру фокус не возвращался и
+            // мышь/клавиатура в оверлее «пропадали». Теперь, пока оверлей открыт,
+            // удерживаем фокус на каждом опросе — повторный SetFocus(true) дёшев и
+            // идемпотентен, поэтому ввод восстанавливается сразу после возврата
             const bool visible = m_control.OverlayVisible();
-            if (visible && !m_lastVisible && m_browser->GetHost())
+            if (visible && m_browser->GetHost())
                 m_browser->GetHost()->SetFocus(true);
 
             // Пушим состояние open/closed на страницу при смене — React-страница

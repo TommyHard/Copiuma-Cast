@@ -674,8 +674,14 @@ namespace Cast.API.Migrations
                     b.Property<bool>("Banned")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset?>("InvitedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Pending")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");

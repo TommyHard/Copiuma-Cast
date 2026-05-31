@@ -4,6 +4,8 @@ public sealed record RegisterRequest(string Email, string Password, string Displ
 
 public sealed record LoginRequest(string Email, string Password);
 
+public sealed record RefreshRequest(string RefreshToken);
+
 public sealed record AuthResponse(
     string AccessToken,
     DateTimeOffset ExpiresAt,
@@ -12,4 +14,5 @@ public sealed record AuthResponse(
     string Handle,
     string? AvatarUrl,
     string Language,
-    long Coins);
+    long Coins,
+    string? RefreshToken = null);

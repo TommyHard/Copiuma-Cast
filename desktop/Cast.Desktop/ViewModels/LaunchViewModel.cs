@@ -14,17 +14,35 @@ public sealed partial class LaunchViewModel : ObservableObject
     private readonly DesktopOptions _options;
     private readonly GameBridgeService _bridge;
     private readonly GameLauncher _launcher;
+    // Поставщики кода активной комнаты и токена — нужны, чтобы оверлей
+    // подключился к комнате (ростер/кик-бан). Устанавливаются MainViewModel
+    private readonly Func<string?>? _roomCodeProvider;
+    private readonly Func<string?>? _tokenProvider;
 
     [ObservableProperty] private string _gameExePath = string.Empty;
     [ObservableProperty] private string _manifestPath = string.Empty;
+
+    /// <summary>
+    /// Аргументы командной строки, передаваемые игре при запуске (напр. -windowed)
+    /// </summary>
+    [ObservableProperty] private string _launchArguments = string.Empty;
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private string _statusText = "Игра не запущена";
     [ObservableProperty] private string _logText = string.Empty;
 
-    public LaunchViewModel(DesktopOptions options, GameBridgeService bridge)
+    // Возвращает путь к манифесту установленного мода для текущей игры комнаты
+    // (для авто-загрузки без ручного выбора файла). null — если не определить
+    private readonly Func<Task<string?>>? _manifestResolver;
+
+    public LaunchViewModel(DesktopOptions options, GameBridgeService bridge,
+        Func<string?>? roomCodeProvider = null, Func<string?>? tokenProvider = null,
+        Func<Task<string?>>? manifestResolver = null)
     {
         _options = options;
         _bridge = bridge;
+        _roomCodeProvider = roomCodeProvider;
+        _tokenProvider = tokenProvider;
+        _manifestResolver = manifestResolver;
         _launcher = new GameLauncher(options);
         _launcher.Log += AppendLog;
         _bridge.Log += AppendLog;
@@ -65,12 +83,26 @@ public sealed partial class LaunchViewModel : ObservableObject
 
         try
         {
-            // Загружаем манифест в GameBridge
-            if (!string.IsNullOrWhiteSpace(ManifestPath) && File.Exists(ManifestPath))
-                await _bridge.LoadAsync(ManifestPath);
+            // Манифест: путь, указанный вручную, иначе — авто-поиск по
+            // установленному моду игры комнаты (чтобы не выбирать файл руками)
+            var manifestPath = ManifestPath;
+            if (string.IsNullOrWhiteSpace(manifestPath) && _manifestResolver is not null)
+            {
+                var auto = await _manifestResolver();
+                if (!string.IsNullOrWhiteSpace(auto))
+                {
+                    manifestPath = auto;
+                    AppendLog($"Манифест найден автоматически: {Path.GetFileName(auto)}");
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(manifestPath) && File.Exists(manifestPath))
+                await _bridge.LoadAsync(manifestPath);
+            else
+                AppendLog("Манифест не задан — события в игре работать не будут, пока мост не подключён.");
 
-            // Запускаем игру с инъекцией
-            await _launcher.LaunchAsync(GameExePath);
+            // Запускаем игру с инъекцией; оверлею передаём код комнаты и токен
+            await _launcher.LaunchAsync(GameExePath, LaunchArguments,
+                _roomCodeProvider?.Invoke(), _tokenProvider?.Invoke());
             IsRunning = true;
             StatusText = $"Игра запущена (PID: {_launcher.Game?.Id})";
 
@@ -80,6 +112,8 @@ public sealed partial class LaunchViewModel : ObservableObject
                 if (_launcher.Game is not null)
                 {
                     await _launcher.Game.WaitForExitAsync();
+                    // Игра закрылась сама — гасим оверлей вместе с CEF-дочерними
+                    _launcher.StopOverlay();
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
                         IsRunning = false;
@@ -101,8 +135,7 @@ public sealed partial class LaunchViewModel : ObservableObject
     {
         try
         {
-            _launcher.Game?.Kill();
-            _launcher.OverlayHost?.Kill();
+            _launcher.Stop();
             IsRunning = false;
             StatusText = "Игра остановлена.";
         }

@@ -15,4 +15,10 @@ namespace cast::overlay {
 	bool IsVisible();
 	void SetVisible(bool visible);
 	void ToggleVisible();
+
+	// Виртуальный код клавиши открытия оверлея (по умолчанию F8). Читается из
+	// %TEMP%\CopiumaCast\overlay-hotkey, который пишет Cast.Desktop (настройка
+	// пользователя). Используется и опросом, и WndProc-хуком
+	int ToggleKey();
+	void LoadToggleKey();
 }

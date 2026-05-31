@@ -65,6 +65,11 @@ public class Program
         builder.Services.AddScoped<Cast.API.Tags.TagService>();
         builder.Services.AddScoped<AnalyticsService>();
         builder.Services.AddHostedService<WatchTimeAccrualService>();
+        builder.Services.AddHostedService<Cast.API.Rooms.RoomReaperService>();
+        builder.Services.AddSingleton<Cast.API.Realtime.EventCooldownService>();
+        builder.Services.AddSingleton<Cast.API.Realtime.BridgeReadinessService>();
+        builder.Services.AddSingleton<Cast.API.Realtime.MediaChargeService>();
+        builder.Services.AddSingleton<Cast.API.Realtime.MediaVolumeService>();
 
         // --- Каталог манифестов игр (авторитетный белый список событий) ---
         builder.Services.AddSingleton(sp => new ManifestCatalog(

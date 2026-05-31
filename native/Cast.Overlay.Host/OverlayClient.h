@@ -17,6 +17,7 @@ namespace cast {
         public CefLifeSpanHandler {
     public:
         OverlayClient(uint32_t gamePid, int width, int height);
+        ~OverlayClient();
 
         // CefClient
         CefRefPtr<CefRenderHandler>   GetRenderHandler()   override { return this; }
@@ -58,6 +59,9 @@ namespace cast {
         void DispatchInput(const ipc::InputEvent& ev);
 
         uint32_t m_gamePid;
+        // Хэндл процесса игры (SYNCHRONIZE). Когда игра завершается, опрос это
+        // замечает и закрывает браузер — иначе хост остаётся зомби-процессом
+        HANDLE   m_gameProcess = nullptr;
         int m_width;
         int m_height;
         SharedFrameWriter     m_writer;

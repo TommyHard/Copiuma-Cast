@@ -25,7 +25,7 @@ public sealed class BetsController : ControllerBase
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<BetDto>>> List(Guid roomId, CancellationToken ct)
-        => Ok(await BetDto.LoadRoomAsync(_db, roomId, ct));
+        => Ok(await BetDto.LoadRoomAsync(_db, roomId, User.GetUserId(), ct));
 
     /// <summary>
     /// Создать ставку (только владелец комнаты)
@@ -40,7 +40,7 @@ public sealed class BetsController : ControllerBase
             return BadRequest("Нужны заголовок и минимум два исхода.");
 
         var bet = await _betting.CreateBetAsync(userId.Value, roomId, req.Title, req.Outcomes, req.LocksInSeconds, ct);
-        return Ok(await BetDto.LoadAsync(_db, bet.Id, ct));
+        return Ok(await BetDto.LoadAsync(_db, bet.Id, userId.Value, ct));
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public sealed class BetsController : ControllerBase
         if (userId is null) return Unauthorized();
 
         var ok = await _betting.ResolveBetAsync(userId.Value, betId, req.WinningOutcomeId, ct);
-        return ok ? Ok(await BetDto.LoadAsync(_db, betId, ct))
+        return ok ? Ok(await BetDto.LoadAsync(_db, betId, userId.Value, ct))
                   : Conflict("Ставку нельзя разрешить (нет прав, уже закрыта или неверный исход).");
     }
 

@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text;
+using System.Text.Json;
 using System.Web;
 
 namespace Cast.Desktop.Services;
@@ -17,6 +19,73 @@ public sealed class DesktopAuthService
     public DesktopAuthService(DesktopOptions options) => _options = options;
 
     public string? Token { get; private set; }
+
+    /// <summary>
+    /// Роли из JWT (claim ClaimTypes.Role). Нужны, чтобы пускать в десктоп только
+    /// стримеров и админов
+    /// </summary>
+    public IReadOnlyList<string> GetRoles()
+    {
+        var t = Token;
+        if (string.IsNullOrEmpty(t)) return Array.Empty<string>();
+        var parts = t.Split('.');
+        if (parts.Length < 2) return Array.Empty<string>();
+        try
+        {
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            payload += (payload.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var roles = new List<string>();
+            foreach (var key in new[]
+            {
+                "http://schemas.microsoft.com/ws/2008/06/identity/claims/role", "role", "roles"
+            })
+            {
+                if (!root.TryGetProperty(key, out var el)) continue;
+                if (el.ValueKind == JsonValueKind.String) roles.Add(el.GetString()!);
+                else if (el.ValueKind == JsonValueKind.Array)
+                    roles.AddRange(el.EnumerateArray()
+                        .Where(x => x.ValueKind == JsonValueKind.String)
+                        .Select(x => x.GetString()!));
+            }
+            return roles;
+        }
+        catch { return Array.Empty<string>(); }
+    }
+
+    /// <summary>
+    /// Разрешён ли вход в desktop (только стример/админ)
+    /// </summary>
+    public bool IsStreamerOrAdmin()
+    {
+        var roles = GetRoles();
+        return roles.Contains("Streamer") || roles.Contains("Admin");
+    }
+
+    /// <summary>
+    /// Id пользователя из токена (claim sub/nameidentifier) — для привязки настроек
+    /// </summary>
+    public string? GetUserId()
+    {
+        var t = Token;
+        if (string.IsNullOrEmpty(t)) return null;
+        var parts = t.Split('.');
+        if (parts.Length < 2) return null;
+        try
+        {
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            payload += (payload.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+            using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(payload)));
+            var root = doc.RootElement;
+            foreach (var key in new[] { "sub", "nameid", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" })
+                if (root.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.String)
+                    return el.GetString();
+            return null;
+        }
+        catch { return null; }
+    }
 
     /// <summary>
     /// Открывает браузер и ждёт возврат токена (с таймаутом)

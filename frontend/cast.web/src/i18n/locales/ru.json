@@ -85,7 +85,8 @@
     "banner": "Баннер (PNG/JPG, пропорции 16:9)",
     "installationManifest": "Манифест мода (JSON инструкция)",
     "gameManifest": "Манифест событий (JSON)",
-    "gameFiles": "Модификация (ZIP архив)"
+    "gameFiles": "Модификация (ZIP архив)",
+    "uncategorized": "Прочее"
   },
   "profile": {
     "title": "Профиль",
@@ -168,7 +169,24 @@
     "triggered": "{{user}} → {{event}}",
     "insufficient": "Недостаточно средств",
     "leave": "Выйти",
-    "kicked": "Вас удалили из комнаты."
+    "kicked": "Вас удалили из комнаты.",
+    "game": "Игра",
+    "members": "Участники",
+    "role": {
+      "Streamer": "Стример",
+      "Viewer": "Зритель"
+    },
+    "invites": "Приглашения",
+    "cooldown": "Перезарядка: {{sec}} с",
+    "uncategorized": "Прочее",
+    "accept": "Принять",
+    "decline": "Отклонить",
+    "media": "Медиа",
+    "noMedia": "Нет одобренного медиа",
+    "sendMedia": "Отправить",
+    "yourRooms": "Ваши комнаты",
+    "enter": "Войти",
+    "favorite": "В избранное"
   },
   "bets": {
     "title": "Ставки",
@@ -185,7 +203,14 @@
     "open": "Открыта",
     "locked": "Закрыта",
     "winner": "Победитель",
-    "noBets": "Ставок пока нет"
+    "noBets": "Ставок пока нет",
+    "closesIn": "Приём: {{sec}} с",
+    "youWon": "Вы выиграли: +{{amount}}",
+    "youLost": "Вы проиграли: −{{amount}}",
+    "refunded": "Возврат: {{amount}}",
+    "topWinner": "Крупнейший выигрыш: {{name}} (+{{amount}})",
+    "noWinners": "Никто не угадал — ставки возвращены",
+    "paidOut": "Выплачено всего: {{amount}}"
   },
   "social": {
     "title": "Друзья и подписки",

@@ -14,6 +14,7 @@ public sealed class StorageService
 {
     private readonly StorageOptions _options;
     private readonly IAmazonS3 _client;
+    private readonly IAmazonS3 _presignClient;
     private readonly ILogger<StorageService> _logger;
     private readonly SemaphoreSlim _initGate = new(1, 1);
     private bool _ready;
@@ -25,7 +26,19 @@ public sealed class StorageService
         _client = new AmazonS3Client(_options.AccessKey, _options.SecretKey, new AmazonS3Config
         {
             ServiceURL = _options.Endpoint,
-            ForcePathStyle = true
+            ForcePathStyle = true,
+            UseHttp = _options.Endpoint?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ?? false
+        });
+
+        // Отдельный клиент для подписи presigned-ссылок: ServiceURL = публичный
+        // (браузерный) эндпоинт, чтобы подпись SigV4 совпадала с URL, который
+        // откроет браузер
+        var publicEndpoint = string.IsNullOrWhiteSpace(_options.PublicEndpoint) ? _options.Endpoint : _options.PublicEndpoint;
+        _presignClient = new AmazonS3Client(_options.AccessKey, _options.SecretKey, new AmazonS3Config
+        {
+            ServiceURL = publicEndpoint,
+            ForcePathStyle = true,
+            UseHttp = publicEndpoint?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ?? false
         });
     }
 
@@ -103,21 +116,20 @@ public sealed class StorageService
         if (string.IsNullOrEmpty(key))
             return string.Empty;
 
-        var url = _client.GetPreSignedURL(new GetPreSignedUrlRequest
+        var publicEndpoint = string.IsNullOrWhiteSpace(_options.PublicEndpoint) ? _options.Endpoint : _options.PublicEndpoint;
+        var useHttp = publicEndpoint?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        // Подписываем под публичный эндпоинт — НЕ переписываем URL строкой, иначе
+        // подпись SigV4 (включает хост и путь) становится недействительной и MinIO
+        // отдаёт 403, из-за чего медиа не воспроизводится
+        return _presignClient.GetPreSignedURL(new GetPreSignedUrlRequest
         {
             BucketName = _options.MediaBucket,
             Key = key,
             Verb = HttpVerb.GET,
             Expires = DateTime.UtcNow.AddMinutes(_options.PresignMinutes),
-            Protocol = Protocol.HTTP
+            Protocol = useHttp ? Protocol.HTTP : Protocol.HTTPS
         });
-
-        var publicBase = _options.PublicBaseUrl.TrimEnd('/');
-
-        url = url.Replace("https://minio:9000", publicBase)
-                 .Replace("http://minio:9000", publicBase);
-
-        return url;
     }
 
     private async Task EnsureBucketsAsync(CancellationToken ct)

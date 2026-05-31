@@ -10,6 +10,11 @@
     <Authors>TommyHard</Authors>
     <Copyright>https://github.com/TommyHard/Copiuma-Cast</Copyright>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\Fonts\Copiuma-Regular.otf" />
+    <None Remove="Assets\splash-screen.gif" />
+  </ItemGroup>
   
     <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -17,11 +22,17 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="8.0.27" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="XamlAnimatedGif" Version="2.3.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\shared\Cast.Shared\Cast.Shared.csproj" />
     <ProjectReference Include="..\Cast.GameBridge\Cast.GameBridge.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\Copiuma-Regular.otf" />
+    <Resource Include="Assets\SplashScreen\splash-screen.gif" />
   </ItemGroup>
 
 </Project>

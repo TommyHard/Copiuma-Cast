@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -23,7 +24,8 @@ public sealed class GameLauncher
     public Process? Game { get; private set; }
     public Process? OverlayHost { get; private set; }
 
-    public async Task LaunchAsync(string gameExePath, CancellationToken ct = default)
+    public async Task LaunchAsync(string gameExePath, string arguments = "",
+        string? overlayRoomCode = null, string? overlayToken = null, CancellationToken ct = default)
     {
         if (!File.Exists(gameExePath))
             throw new FileNotFoundException("Исполняемый файл игры не найден.", gameExePath);
@@ -34,6 +36,7 @@ public sealed class GameLauncher
         {
             UseShellExecute = true,
             WorkingDirectory = Path.GetDirectoryName(gameExePath)!,
+            Arguments = arguments ?? string.Empty,
         });
 
         Log?.Invoke($"Запуск {exeName}. Ожидание появления основного окна игры...");
@@ -86,8 +89,11 @@ public sealed class GameLauncher
         // Запуск CEF-хоста
         if (File.Exists(_options.OverlayHostPath))
         {
+            // Передаём оверлею код комнаты и токен через query, чтобы он мог
+            // подключиться к хабу комнаты и показать ростер/кик-бан
+            var overlayUrl = BuildOverlayUrl(_options.OverlayUiUrl, overlayRoomCode, overlayToken);
             OverlayHost = Process.Start(new ProcessStartInfo(_options.OverlayHostPath,
-                $"--game-pid={Game.Id} --url={_options.OverlayUiUrl}")
+                $"--game-pid={Game.Id} --url={overlayUrl}")
             { UseShellExecute = false });
             Log?.Invoke("CEF-хост оверлея запущен.");
         }
@@ -95,6 +101,41 @@ public sealed class GameLauncher
         {
             Log?.Invoke($"CEF-хост не найден: {_options.OverlayHostPath} (оверлей не поднят).");
         }
+    }
+
+    // Добавляет к URL оверлея query-параметры code/token (если заданы), чтобы
+    // React-страница оверлея подключилась к нужной комнате под нужным токеном
+    private static string BuildOverlayUrl(string baseUrl, string? roomCode, string? token)
+    {
+        if (string.IsNullOrEmpty(roomCode) && string.IsNullOrEmpty(token))
+            return baseUrl;
+
+        var sep = baseUrl.Contains('?') ? '&' : '?';
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(roomCode))
+            query.Add("code=" + Uri.EscapeDataString(roomCode));
+        if (!string.IsNullOrEmpty(token))
+            query.Add("token=" + Uri.EscapeDataString(token));
+        return baseUrl + sep + string.Join("&", query);
+    }
+
+    /// <summary>
+    /// Остановить игру и оверлей, завершив всё дерево процессов (CEF поднимает
+    /// дочерние render/gpu/utility — без дерева они остаются зомби)
+    /// </summary>
+    public void Stop()
+    {
+        try { if (Game is { HasExited: false }) Game.Kill(entireProcessTree: true); } catch { /* ignore */ }
+        StopOverlay();
+    }
+
+    /// <summary>
+    /// Завершить CEF-хост оверлея вместе со всеми дочерними процессами.
+    /// Вызывается и при ручной остановке, и при самостоятельном выходе игры
+    /// </summary>
+    public void StopOverlay()
+    {
+        try { if (OverlayHost is { HasExited: false }) OverlayHost.Kill(entireProcessTree: true); } catch { /* ignore */ }
     }
 
     private static bool Is64BitProcess(Process process)

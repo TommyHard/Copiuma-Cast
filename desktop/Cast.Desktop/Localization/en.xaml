@@ -4,6 +4,7 @@
 
     <!-- App -->
     <sys:String x:Key="AppTitle">Copiuma.Cast</sys:String>
+    <sys:String x:Key="AppLoading">Loading Data...</sys:String>
     <sys:String x:Key="Logout">Log out</sys:String>
 
     <!-- Nav -->
@@ -50,13 +51,34 @@
     <sys:String x:Key="RoomNoRoom">No active room</sys:String>
     <sys:String x:Key="RoomKick">Kick</sys:String>
     <sys:String x:Key="RoomBlock">Block</sys:String>
+    <sys:String x:Key="RoomGrant">Grant</sys:String>
+    <sys:String x:Key="RoomGrantAmount">Amount:</sys:String>
+    <sys:String x:Key="RoomMediaVolume">Media volume:</sys:String>
     <sys:String x:Key="RoomMembers">Connected viewers:</sys:String>
     <sys:String x:Key="RoomConnected">Connected</sys:String>
+    <!-- Events -->
+    <sys:String x:Key="RoomEvents">Game events:</sys:String>
+    <sys:String x:Key="EventEnable">Enable</sys:String>
+    <sys:String x:Key="EventDisable">Disable</sys:String>
+    <sys:String x:Key="EventOn">on</sys:String>
+    <sys:String x:Key="EventOff">off</sys:String>
+    <!-- Bets -->
+    <sys:String x:Key="BetsTitle">Bets:</sys:String>
+    <sys:String x:Key="BetQuestion">Question</sys:String>
+    <sys:String x:Key="BetOutcomes">Outcomes (comma-separated)</sys:String>
+    <sys:String x:Key="BetDuration">Open (sec)</sys:String>
+    <sys:String x:Key="BetCreate">Create bet</sys:String>
+    <sys:String x:Key="BetResolve">Winner</sys:String>
+    <sys:String x:Key="BetCancel">Cancel</sys:String>
+    <sys:String x:Key="BetPool">Pool:</sys:String>
+    <sys:String x:Key="BetNoBets">No bets yet</sys:String>
 
     <!-- Launch -->
     <sys:String x:Key="LaunchTitle">Game Launch</sys:String>
     <sys:String x:Key="LaunchExe">Executable:</sys:String>
     <sys:String x:Key="LaunchManifest">Manifest:</sys:String>
+    <sys:String x:Key="LaunchArgs">Launch parameters:</sys:String>
+    <sys:String x:Key="LaunchArgsHint">Game command-line arguments, e.g. --windowed</sys:String>
     <sys:String x:Key="LaunchStart">Launch Game</sys:String>
     <sys:String x:Key="LaunchStop">Stop</sys:String>
     <sys:String x:Key="LaunchRunning">Game is running (PID: {0})</sys:String>

@@ -6,8 +6,9 @@
         xmlns:vm="clr-namespace:Cast.Desktop.ViewModels"
         xmlns:views="clr-namespace:Cast.Desktop.Views"
         mc:Ignorable="d"
-        Title="Copiuma.Cast" Height="680" Width="960"
-        Background="{DynamicResource BgPrimaryBrush}"
+        Title="Copiuma.Cast" 
+        Height="680" Width="960"
+        Background="#000000"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
@@ -27,6 +28,11 @@
     </Window.Resources>
 
     <Grid>
+        <Grid Style="{StaticResource AnimatedBackgroundStyle}">
+            <Grid.Effect>
+                <BlurEffect Radius="5" KernelType="Gaussian" />
+            </Grid.Effect>
+        </Grid>
         <!-- Login screen (shown when not logged in) -->
         <views:LoginView DataContext="{Binding}"
                          Visibility="{Binding IsLoggedIn, Converter={StaticResource InvertBoolToVis}}"/>

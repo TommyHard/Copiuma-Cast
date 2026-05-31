@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
@@ -16,6 +16,23 @@ export function BetsPanel({ roomId, isStreamer, onBalance }: { roomId: string; i
     const [outcomes, setOutcomes] = useState('');
     const [duration, setDuration] = useState(60);
     const [amounts, setAmounts] = useState<Record<string, number>>({});
+
+    // Тикаем раз в секунду, пока есть открытые ставки (для отсчёта) или недавно
+    // закрытые
+    const [now, setNow] = useState(() => Date.now());
+    const CLOSED_TTL = 30000;
+    const ticking = (data ?? []).some((b) =>
+        (b.status === 'Open' && new Date(b.locksAt).getTime() > Date.now())
+        || (b.status !== 'Open' && b.resolvedAt != null && Date.now() - new Date(b.resolvedAt).getTime() < CLOSED_TTL));
+    useEffect(() => {
+        if (!ticking) return;
+        const id = window.setInterval(() => setNow(Date.now()), 1000);
+        return () => window.clearInterval(id);
+    }, [ticking]);
+
+    // Скрываем закрытые ставки спустя 30 c после исхода, чтобы не копились
+    const visibleBets = (data ?? []).filter((b) =>
+        b.status === 'Open' || b.resolvedAt == null || (now - new Date(b.resolvedAt).getTime()) < CLOSED_TTL);
 
     const refetch = () => qc.invalidateQueries({ queryKey: ['bets', roomId] });
 
@@ -56,14 +73,18 @@ export function BetsPanel({ roomId, isStreamer, onBalance }: { roomId: string; i
                 </form>
             )}
 
-            {(data ?? []).map((bet) => {
-                const locked = bet.status !== 'Open' || new Date(bet.locksAt) <= new Date();
+            {visibleBets.map((bet) => {
+                const msLeft = new Date(bet.locksAt).getTime() - now;
+                const locked = bet.status !== 'Open' || msLeft <= 0;
+                const secLeft = Math.max(0, Math.ceil(msLeft / 1000));
                 return (
                     <div key={bet.id} className="rounded-lg border border-border bg-bg-elevated p-3">
                         <div className="flex items-center justify-between">
                             <span className="font-medium text-fg">{bet.title}</span>
                             <span className="text-xs text-fg-muted">
-                                {bet.status === 'Open' ? (locked ? t('bets.locked') : t('bets.open')) : t(`media.${bet.status}`)}
+                                {bet.status === 'Open'
+                                    ? (locked ? t('bets.locked') : t('bets.closesIn', { sec: secLeft }))
+                                    : t(`media.${bet.status}`)}
                             </span>
                         </div>
                         <div className="mt-2 space-y-1">
@@ -91,6 +112,19 @@ export function BetsPanel({ roomId, isStreamer, onBalance }: { roomId: string; i
                         </div>
                         {isStreamer && bet.status === 'Open' && (
                             <button onClick={() => cancel(bet.id)} className="mt-2 text-xs text-danger hover:underline">{t('bets.cancel')}</button>
+                        )}
+
+                        {/* Итоги после разрешения: личный результат + крупнейший выигрыш */}
+                        {bet.status !== 'Open' && (
+                            <div className="mt-2 space-y-0.5 border-t border-border pt-2 text-xs">
+                                {bet.myStatus === 'Won' && <p className="text-success">{t('bets.youWon', { amount: bet.myPayout ?? 0 })}</p>}
+                                {bet.myStatus === 'Lost' && <p className="text-danger">{t('bets.youLost', { amount: bet.myStake ?? 0 })}</p>}
+                                {bet.myStatus === 'Refunded' && <p className="text-fg-muted">{t('bets.refunded', { amount: bet.myPayout ?? 0 })}</p>}
+                                {bet.topWinnerName
+                                    ? <p className="text-fg-muted">{t('bets.topWinner', { name: bet.topWinnerName, amount: bet.topWinnerPayout })}</p>
+                                    : bet.status === 'Resolved' && <p className="text-fg-muted">{t('bets.noWinners')}</p>}
+                                <p className="text-fg-muted">{t('bets.paidOut', { amount: bet.paidOut })}</p>
+                            </div>
                         )}
                     </div>
                 );

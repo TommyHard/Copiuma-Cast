@@ -4,6 +4,7 @@
 
     <!-- App -->
     <sys:String x:Key="AppTitle">Copiuma.Cast</sys:String>
+    <sys:String x:Key="AppLoading">Загрузка Данных...</sys:String>
     <sys:String x:Key="Logout">Выйти</sys:String>
 
     <!-- Nav -->
@@ -50,13 +51,34 @@
     <sys:String x:Key="RoomNoRoom">Нет активной комнаты</sys:String>
     <sys:String x:Key="RoomKick">Выгнать</sys:String>
     <sys:String x:Key="RoomBlock">Заблокировать</sys:String>
+    <sys:String x:Key="RoomGrant">Выдать</sys:String>
+    <sys:String x:Key="RoomGrantAmount">Сумма:</sys:String>
+    <sys:String x:Key="RoomMediaVolume">Громкость медиа:</sys:String>
     <sys:String x:Key="RoomMembers">Подключённые зрители:</sys:String>
     <sys:String x:Key="RoomConnected">Подключено</sys:String>
+    <!-- События -->
+    <sys:String x:Key="RoomEvents">События игры:</sys:String>
+    <sys:String x:Key="EventEnable">Включить</sys:String>
+    <sys:String x:Key="EventDisable">Выключить</sys:String>
+    <sys:String x:Key="EventOn">вкл</sys:String>
+    <sys:String x:Key="EventOff">выкл</sys:String>
+    <!-- Ставки -->
+    <sys:String x:Key="BetsTitle">Ставки:</sys:String>
+    <sys:String x:Key="BetQuestion">Вопрос</sys:String>
+    <sys:String x:Key="BetOutcomes">Исходы (через запятую)</sys:String>
+    <sys:String x:Key="BetDuration">Приём (сек)</sys:String>
+    <sys:String x:Key="BetCreate">Создать ставку</sys:String>
+    <sys:String x:Key="BetResolve">Победил</sys:String>
+    <sys:String x:Key="BetCancel">Отменить</sys:String>
+    <sys:String x:Key="BetPool">Пул:</sys:String>
+    <sys:String x:Key="BetNoBets">Ставок пока нет</sys:String>
 
     <!-- Launch -->
     <sys:String x:Key="LaunchTitle">Запуск игры</sys:String>
     <sys:String x:Key="LaunchExe">Исполняемый файл:</sys:String>
     <sys:String x:Key="LaunchManifest">Манифест:</sys:String>
+    <sys:String x:Key="LaunchArgs">Параметры запуска:</sys:String>
+    <sys:String x:Key="LaunchArgsHint">Аргументы командной строки игры, например: --windowed</sys:String>
     <sys:String x:Key="LaunchStart">Запустить игру</sys:String>
     <sys:String x:Key="LaunchStop">Остановить</sys:String>
     <sys:String x:Key="LaunchRunning">Игра запущена (PID: {0})</sys:String>

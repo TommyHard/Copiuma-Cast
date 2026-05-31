@@ -9,15 +9,18 @@ export function StreamerApplicationSection() {
     const { t } = useTranslation();
     const qc = useQueryClient();
     const isStreamer = useAuthStore((s) => s.hasRole('Streamer'));
+    const isAdmin = useAuthStore((s) => s.hasRole('Admin'));
     const [message, setMessage] = useState('');
 
     const { data, isLoading } = useQuery({
         queryKey: ['my-application'],
         queryFn: async () => {
-            try { return (await api.get<MyApplication>('/streamer/application')).data; }
-            catch { return null; }
+            try {
+                const res = await api.get<MyApplication>('/streamer/application');
+                return res.data || null; // 204 -> пустое тело -> null
+            } catch { return null; }
         },
-        enabled: !isStreamer,
+        enabled: !isStreamer && !isAdmin,
     });
 
     async function apply() {

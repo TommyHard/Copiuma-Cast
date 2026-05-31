@@ -221,8 +221,10 @@ public sealed class MediaService
             return (false, "Медиа не найдено.", null, 0);
         if (item.Status != MediaStatus.Approved)
             return (false, "Медиа не одобрено.", null, 0);
-        if (item.Type == MediaType.Sound && !item.Processed)
-            return (false, "Аудио ещё обрабатывается.", null, 0);
+        // И видео, и звук должны быть обработаны: оверлею отдаём перекодированный
+        // WebM (VP9/Opus)
+        if (!item.Processed)
+            return (false, item.Type == MediaType.Video ? "Видео ещё обрабатывается." : "Аудио ещё обрабатывается.", null, 0);
 
         // Tolerance-фильтр стримера с учётом режима (block-list / allow-list)
         var mode = (await _db.StreamerFilterSettings.FindAsync(new object?[] { streamerId }, ct))?.Mode
@@ -238,8 +240,8 @@ public sealed class MediaService
         if (blocked)
             return (false, "Медиа заблокировано фильтрами стримера.", null, 0);
 
-        var webm = item.Type == MediaType.Sound
-            ? (item.WebmKey is null ? null : _storage.PresignMedia(item.WebmKey))
+        var webm = item.WebmKey is not null
+            ? _storage.PresignMedia(item.WebmKey)
             : _storage.PresignMedia(item.OriginalKey);
         var ogg = item.Type == MediaType.Sound && item.OggKey is not null ? _storage.PresignMedia(item.OggKey) : null;
         var playback = new MediaPlayback
@@ -247,6 +249,8 @@ public sealed class MediaService
             Title = item.Title,
             WebmUrl = webm,
             OggUrl = ogg,
+            IsVideo = item.Type == MediaType.Video,
+            Cost = item.CostCoins,
             ClipStartMs = item.ClipStartMs,
             ClipEndMs = item.ClipEndMs,
             PosXPct = item.PosXPct,

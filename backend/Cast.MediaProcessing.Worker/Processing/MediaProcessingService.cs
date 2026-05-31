@@ -93,17 +93,21 @@ public sealed class MediaProcessingService : BackgroundService
                 if (item.ClipStartMs is > 0) seek += $"-ss {item.ClipStartMs.Value / 1000.0} ";
                 if (item.ClipEndMs is > 0) seek += $"-to {item.ClipEndMs.Value / 1000.0} ";
 
-                var outVideoPath = Path.Combine(workDir, "output.mp4");
+                var outVideoPath = Path.Combine(workDir, "output.webm");
 
-                // Перекодируем видео в web-формат h264/aac с точной обрезкой
-                var ffmpegArgs = $"-y -i \"{inputPath}\" {seek}-c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k \"{outVideoPath}\"";
+                // Перекодируем видео в WebM (VP9 + Opus): эти кодеки умеет
+                // воспроизводить CEF-оверлей. H.264/AAC у стандартного CEF нет
+                // (нет проприетарных кодеков)
+                var ffmpegArgs = $"-y -i \"{inputPath}\" {seek}-c:v libvpx-vp9 -b:v 0 -crf 33 " +
+                                 $"-deadline realtime -cpu-used 5 -row-mt 1 -c:a libopus -b:a 128k \"{outVideoPath}\"";
 
                 await ExecuteFfmpegAsync(ffmpegArgs, ct);
 
-                var videoKey = $"media/video/{item.OwnerId}/{item.Id:N}.mp4";
-                await _storage.UploadFileAsync(outVideoPath, videoKey, "video/mp4", ct);
+                var videoKey = $"media/video/{item.OwnerId}/{item.Id:N}.webm";
+                await _storage.UploadFileAsync(outVideoPath, videoKey, "video/webm", ct);
 
-                item.OriginalKey = videoKey;
+                // WebmKey — то, что отдаём оверлею; OriginalKey оставляем как исходник
+                item.WebmKey = videoKey;
             }
 
             item.Processed = true;

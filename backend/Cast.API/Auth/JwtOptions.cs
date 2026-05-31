@@ -11,4 +11,9 @@ public sealed class JwtOptions
     public string Audience { get; set; } = "Copiuma.Cast.Clients";
     public string SigningKey { get; set; } = string.Empty;
     public int AccessTokenMinutes { get; set; } = 120;
+
+    /// <summary>
+    /// Срок жизни refresh-токена (дни)
+    /// </summary>
+    public int RefreshTokenDays { get; set; } = 30;
 }

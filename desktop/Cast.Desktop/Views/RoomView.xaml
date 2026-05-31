@@ -73,6 +73,16 @@
                         Command="{Binding CloseRoomCommand}" HorizontalAlignment="Left"
                         Foreground="{DynamicResource ErrorBrush}" Padding="12,6"/>
 
+                <!-- Громкость медиа (синхронизируется с оверлеем) -->
+                <DockPanel Margin="0,12,0,0">
+                    <TextBlock Text="{DynamicResource RoomMediaVolume}" DockPanel.Dock="Left" Margin="0,0,8,0"
+                               VerticalAlignment="Center" Foreground="{DynamicResource FgSecondaryBrush}"/>
+                    <TextBlock Text="{Binding MediaVolume}" DockPanel.Dock="Right" Width="32" Margin="8,0,0,0"
+                               VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"/>
+                    <Slider Minimum="0" Maximum="100" Value="{Binding MediaVolume}"
+                            VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                </DockPanel>
+
                 <!-- Connected viewers -->
                 <StackPanel Orientation="Horizontal" Margin="0,16,0,4">
                     <TextBlock Text="{DynamicResource RoomMembers}" FontWeight="SemiBold"
@@ -81,6 +91,10 @@
                                Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding OnlineCount}" Foreground="{DynamicResource AccentBrush}"
                                FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource RoomGrantAmount}" Margin="16,0,4,0"
+                               Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding GrantAmount, UpdateSourceTrigger=PropertyChanged}"
+                             Width="70" VerticalContentAlignment="Center"/>
                 </StackPanel>
                 <ListBox ItemsSource="{Binding Members}" MaxHeight="160" Margin="0,0,0,4"
                          Background="{DynamicResource BgTertiaryBrush}"
@@ -93,6 +107,20 @@
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                                     <TextBlock Text="{Binding Role}" VerticalAlignment="Center" Margin="0,0,8,0"
                                                Foreground="{DynamicResource FgSecondaryBrush}" FontSize="11"/>
+                                    <Button Content="{DynamicResource RoomGrant}" Padding="6,2" Margin="0,0,4,0"
+                                            Command="{Binding DataContext.GrantCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Role}" Value="Streamer">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
                                     <Button Content="{DynamicResource RoomKick}" Padding="6,2" Margin="0,0,4,0"
                                             Command="{Binding DataContext.KickCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                             CommandParameter="{Binding}">
@@ -122,6 +150,114 @@
                                     </Button>
                                 </StackPanel>
                             </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Game events: enable/disable per session -->
+                <TextBlock Text="{DynamicResource RoomEvents}" FontWeight="SemiBold" Margin="0,16,0,4"
+                           Foreground="{DynamicResource FgPrimaryBrush}"/>
+                <ListBox ItemsSource="{Binding Events}" MaxHeight="160"
+                         Background="{DynamicResource BgTertiaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel LastChildFill="False" Margin="4,2">
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource FgPrimaryBrush}"/>
+                                <TextBlock Text="{Binding CostCoins}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AccentBrush}" FontSize="11"/>
+                                <Button DockPanel.Dock="Right" Padding="8,2"
+                                        Command="{Binding DataContext.ToggleEventCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                            <Setter Property="Content" Value="{DynamicResource EventDisable}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Enabled}" Value="False">
+                                                    <Setter Property="Content" Value="{DynamicResource EventEnable}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource FgSecondaryBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Bets -->
+                <TextBlock Text="{DynamicResource BetsTitle}" FontWeight="SemiBold" Margin="0,16,0,4"
+                           Foreground="{DynamicResource FgPrimaryBrush}"/>
+                <StackPanel Margin="0,0,0,6">
+                    <TextBox Text="{Binding NewBetTitle, UpdateSourceTrigger=PropertyChanged}"
+                             Tag="{DynamicResource BetQuestion}" Margin="0,0,0,4"
+                             VerticalContentAlignment="Center"/>
+                    <TextBox Text="{Binding NewBetOutcomes, UpdateSourceTrigger=PropertyChanged}"
+                             Tag="{DynamicResource BetOutcomes}" Margin="0,0,0,4"
+                             VerticalContentAlignment="Center"/>
+                    <DockPanel>
+                        <TextBlock Text="{DynamicResource BetDuration}" DockPanel.Dock="Left" Margin="0,0,6,0"
+                                   VerticalAlignment="Center" Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <Button Content="{DynamicResource BetCreate}" DockPanel.Dock="Right"
+                                Style="{StaticResource AccentButton}" Command="{Binding CreateBetCommand}"
+                                Padding="10,4"/>
+                        <TextBox Text="{Binding NewBetDuration, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="60" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                </StackPanel>
+
+                <ListBox ItemsSource="{Binding Bets}" MaxHeight="220"
+                         Background="Transparent" BorderThickness="0"
+                         HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,6" Padding="8" CornerRadius="6"
+                                    Background="{DynamicResource BgTertiaryBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                <StackPanel>
+                                    <DockPanel LastChildFill="False">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource FgPrimaryBrush}"/>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <TextBlock Text="{Binding ClosesAtText}" Margin="8,0,0,0"
+                                                       VerticalAlignment="Center" FontSize="11"
+                                                       Foreground="{DynamicResource AccentBrush}"/>
+                                            <TextBlock Text="{Binding Status}" Margin="8,0,0,0"
+                                                       VerticalAlignment="Center" FontSize="11"
+                                                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <ItemsControl ItemsSource="{Binding Outcomes}" Margin="0,4,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel LastChildFill="False" Margin="0,1">
+                                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource FgPrimaryBrush}"/>
+                                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11"
+                                                               Foreground="{DynamicResource FgSecondaryBrush}"
+                                                               Text="{Binding Pool, StringFormat='Пул: {0}'}"/>
+                                                    <Button Content="{DynamicResource BetResolve}" DockPanel.Dock="Right"
+                                                            Padding="8,2" Style="{StaticResource SecondaryButton}"
+                                                            Visibility="{Binding CanResolve, Converter={StaticResource BoolToVis}}"
+                                                            Command="{Binding DataContext.ResolveBetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Button Content="{DynamicResource BetCancel}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                            Padding="8,2" Foreground="{DynamicResource ErrorBrush}"
+                                            Visibility="{Binding IsOpen, Converter={StaticResource BoolToVis}}"
+                                            Style="{StaticResource SecondaryButton}"
+                                            Command="{Binding DataContext.CancelBetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                    <TextBlock Text="{Binding ResultText}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                                </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

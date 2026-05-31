@@ -85,7 +85,8 @@
     "banner": "Banner (PNG/JPG, 16:9 aspect ratio)",
     "installationManifest": "Mod Manifest (JSON Instruction)",
     "gameManifest": "Event Manifest (JSON)",
-    "gameFiles": "Modification (ZIP Archive)"
+    "gameFiles": "Modification (ZIP Archive)",
+    "uncategorized": "Other"
   },
   "profile": {
     "title": "Profile",
@@ -168,7 +169,24 @@
     "triggered": "{{user}} → {{event}}",
     "insufficient": "Not enough coins",
     "leave": "Leave",
-    "kicked": "You were removed from the room."
+    "kicked": "You were removed from the room.",
+    "game": "Game",
+    "members": "Participants",
+    "role": {
+      "Streamer": "Streamer",
+      "Viewer": "Viewer"
+    },
+    "invites": "Invitations",
+    "cooldown": "Cooldown: {{sec}}s",
+    "uncategorized": "Other",
+    "accept": "Accept",
+    "decline": "Decline",
+    "media": "Media",
+    "noMedia": "No approved media",
+    "sendMedia": "Send",
+    "yourRooms": "Your rooms",
+    "enter": "Enter",
+    "favorite": "Favorite"
   },
   "bets": {
     "title": "Bets",
@@ -185,7 +203,14 @@
     "open": "Open",
     "locked": "Locked",
     "winner": "Winner",
-    "noBets": "No bets yet"
+    "noBets": "No bets yet",
+    "closesIn": "Closes in {{sec}}s",
+    "youWon": "You won: +{{amount}}",
+    "youLost": "You lost: −{{amount}}",
+    "refunded": "Refunded: {{amount}}",
+    "topWinner": "Biggest win: {{name}} (+{{amount}})",
+    "noWinners": "No winners — bets refunded",
+    "paidOut": "Total paid out: {{amount}}"
   },
   "social": {
     "title": "Friends & subscriptions",

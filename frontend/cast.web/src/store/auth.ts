@@ -18,6 +18,7 @@ function parseRoles(token: string): string[] {
 
 interface AuthState {
     token: string | null;
+    refreshToken: string | null;
     roles: string[];
     user: Pick<AuthResponse, 'userId' | 'displayName' | 'handle' | 'avatarUrl' | 'language'> | null;
     isAuthenticated: () => boolean;
@@ -30,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set, get) => ({
             token: null,
+            refreshToken: null,
             roles: [],
             user: null,
             isAuthenticated: () => !!get().token,
@@ -37,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
             setAuth: (res) =>
                 set({
                     token: res.accessToken,
+                    refreshToken: res.refreshToken ?? get().refreshToken,
                     roles: parseRoles(res.accessToken),
                     user: {
                         userId: res.userId,
@@ -46,7 +49,7 @@ export const useAuthStore = create<AuthState>()(
                         language: res.language,
                     },
                 }),
-            logout: () => set({ token: null, roles: [], user: null }),
+            logout: () => set({ token: null, refreshToken: null, roles: [], user: null }),
         }),
         { name: 'cast.auth' },
     ),

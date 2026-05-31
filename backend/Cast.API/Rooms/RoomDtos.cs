@@ -22,6 +22,7 @@ public sealed record RoomDto(
 public sealed record RoomEventDto(
     string EventId,
     string Title,
+    string? Description,
     string? Category,
     int CostCoins,
     int CooldownMs,
@@ -30,5 +31,7 @@ public sealed record RoomEventDto(
 public sealed record SetEventEnabledRequest(bool Enabled);
 
 public sealed record InviteRequest(string Identifier);
+
+public sealed record GrantCoinsRequest(Guid TargetUserId, long Amount);
 
 public sealed record InviteLinkDto(string Link);

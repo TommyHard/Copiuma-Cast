@@ -45,4 +45,56 @@ public sealed class JwtTokenService
 
         return (new JwtSecurityTokenHandler().WriteToken(jwt), expiresAt);
     }
+
+    /// <summary>
+    /// Долгоживущий refresh-токен
+    /// </summary>
+    public string CreateRefresh(ApplicationUser user)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("typ", "refresh")
+        };
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var jwt = new JwtSecurityToken(
+            issuer: _options.Issuer,
+            audience: _options.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(_options.RefreshTokenDays),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(jwt);
+    }
+
+    /// <summary>
+    /// Проверить refresh-токен и вернуть Id пользователя (или null, если токен
+    /// недействителен/просрочен/не refresh)
+    /// </summary>
+    public Guid? ValidateRefresh(string refreshToken)
+    {
+        try
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
+            var principal = new JwtSecurityTokenHandler().ValidateToken(refreshToken, new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = _options.Issuer,
+                ValidAudience = _options.Audience,
+                IssuerSigningKey = key,
+                ClockSkew = TimeSpan.FromMinutes(1)
+            }, out _);
+
+            if (principal.FindFirst("typ")?.Value != "refresh")
+                return null;
+            var sub = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                      ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return Guid.TryParse(sub, out var id) ? id : null;
+        }
+        catch { return null; }
+    }
 }

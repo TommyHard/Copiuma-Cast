@@ -26,5 +26,16 @@ public sealed class RoomMembership
     /// </summary>
     public bool Banned { get; set; }
 
+    /// <summary>
+    /// Приглашение ещё не принято. true — создано стримером через "Пригласить";
+    /// становится false, когда зритель входит в комнату. Отклонение удаляет запись
+    /// </summary>
+    public bool Pending { get; set; }
+
+    /// <summary>
+    /// Когда отправлено приглашение (для срока жизни приглашения)
+    /// </summary>
+    public DateTimeOffset? InvitedAt { get; set; }
+
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
 }

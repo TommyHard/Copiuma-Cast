@@ -48,6 +48,13 @@ public sealed class OnlinePresenceService
             await BroadcastToFriendsAsync(userId, ct);
     }
 
+    /// <summary>
+    /// Уведомить друзей об изменении активности пользователя (вошёл/вышел из
+    /// комнаты -> статус "Играет в ..." / "Смотрит ..."). Шлёт актуальную карточку
+    /// </summary>
+    public Task NotifyActivityChangedAsync(Guid userId, CancellationToken ct = default)
+        => BroadcastToFriendsAsync(userId, ct);
+
     private async Task BroadcastToFriendsAsync(Guid userId, CancellationToken ct)
     {
         var card = await _social.CardAsync(userId, ct);

@@ -12,6 +12,13 @@ public sealed class StorageOptions
     public string Endpoint { get; set; } = "http://localhost:9000";
 
     /// <summary>
+    /// Эндпоинт MinIO/S3. По нему генерируются presigned-
+    /// ссылки на медиа: подпись SigV4 включает хост и путь, поэтому ссылку нельзя
+    /// "переписать" постфактум — её надо сразу подписывать под публичный адрес
+    /// </summary>
+    public string PublicEndpoint { get; set; } = "http://localhost:9000";
+
+    /// <summary>
     /// Базовый URL для публичных ссылок (аватары)
     /// </summary>
     public string PublicBaseUrl { get; set; } = "http://localhost:9000";

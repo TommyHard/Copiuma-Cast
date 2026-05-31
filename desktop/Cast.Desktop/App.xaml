@@ -5,15 +5,56 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources/DarkTheme.xaml"/>
+                <ResourceDictionary Source="Assets/Styles/BaseStyles.xaml"/>
                 <ResourceDictionary Source="Localization/ru.xaml"/>
+                <ResourceDictionary Source="Resources/DarkTheme.xaml"/>
+
+                <ResourceDictionary Source="Assets/Icons/SvgIcons.xaml"/>
+
+                <ResourceDictionary Source="Assets/Styles/ButtonStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Global converters -->
             <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
-            <conv:InvertBoolConverter x:Key="InvertBool"/>
-            <conv:InvertBoolToVisibilityConverter x:Key="InvertBoolToVis"/>
-            <conv:NavCheckConverter x:Key="NavCheck"/>
+            <conv:InvertBoolConverter               x:Key="InvertBool"/>
+            <conv:InvertBoolToVisibilityConverter   x:Key="InvertBoolToVis"/>
+            <conv:NavCheckConverter                 x:Key="NavCheck"/>
+
+            <Style x:Key="AnimatedBackgroundStyle" TargetType="{x:Type Grid}">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <DrawingBrush TileMode="Tile" 
+                                      Viewport="0 0 65 65"  ViewportUnits="Absolute" 
+                                      Viewbox="-0.25 -0.25 1.5 1.5" ViewboxUnits="RelativeToBoundingBox"
+                                      Stretch="Uniform"
+                                      Opacity=".15">
+                            <DrawingBrush.Transform>
+                                <TransformGroup>
+                                    <TranslateTransform X="0" Y="0" />
+                                    <RotateTransform Angle="-45" 
+                                                     CenterX="0" CenterY="0" />
+                                </TransformGroup>
+                            </DrawingBrush.Transform>
+                            <DrawingBrush.Drawing>
+                                <GeometryDrawing Brush="#9BDF1E"
+                                                 Geometry="{StaticResource SplashLogoGeometry}" />
+                            </DrawingBrush.Drawing>
+                        </DrawingBrush>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <EventTrigger RoutedEvent="Loaded">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(Grid.Background).(DrawingBrush.Transform).(TransformGroup.Children)[0].(TranslateTransform.X)"
+                                                 From="0" To="-65" 
+                                                 Duration="0:0:4" 
+                                                 RepeatBehavior="Forever" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Style.Triggers>
+            </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

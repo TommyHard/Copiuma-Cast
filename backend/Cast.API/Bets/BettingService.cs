@@ -176,8 +176,8 @@ public sealed class BettingService
 
     private async Task BroadcastAsync(Guid betId, CancellationToken ct)
     {
-        var dto = await BetDto.LoadAsync(_db, betId, ct);
-        if (dto is not null)
-            await _hub.Clients.Group(RoomHub.RoomGroup(dto.RoomId)).SendAsync("BetUpdated", dto, ct);
+        var roomId = await _db.Bets.Where(b => b.Id == betId).Select(b => (Guid?)b.RoomId).FirstOrDefaultAsync(ct);
+        if (roomId is not null)
+            await _hub.Clients.Group(RoomHub.RoomGroup(roomId.Value)).SendAsync("BetUpdated", ct);
     }
 }

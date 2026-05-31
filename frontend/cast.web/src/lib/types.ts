@@ -10,6 +10,7 @@ export interface AuthResponse {
     avatarUrl: string | null;
     language: string;
     coins: number;
+    refreshToken?: string | null;
 }
 
 export interface Profile {
@@ -110,6 +111,7 @@ export interface RoomInfo {
 export interface RoomEvent {
     eventId: string;
     title: string;
+    description: string | null;
     category: string | null;
     costCoins: number;
     cooldownMs: number;
@@ -130,9 +132,16 @@ export interface Bet {
     title: string;
     status: BetStatus;
     locksAt: string;
+    resolvedAt: string | null;
     winningOutcomeId: string | null;
     totalPool: number;
     outcomes: BetOutcome[];
+    topWinnerName: string | null;
+    topWinnerPayout: number;
+    paidOut: number;
+    myStake: number | null;
+    myPayout: number | null;
+    myStatus: string | null;
 }
 
 export interface FriendRequest {

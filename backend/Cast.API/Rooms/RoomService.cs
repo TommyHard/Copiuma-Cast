@@ -61,8 +61,29 @@ public sealed class RoomService
             _db.RoomMemberships.Add(membership);
             await _db.SaveChangesAsync(ct);
         }
+        else if (membership.Pending)
+        {
+            // Вход = принятие приглашения: снимаем флаг, чтобы оно исчезло из списка
+            membership.Pending = false;
+            await _db.SaveChangesAsync(ct);
+        }
 
         return (room, membership.Role);
+    }
+
+    /// <summary>
+    /// Отклонить приглашение: удаляет "ожидающее" членство. Возвращает false,
+    /// если приглашения нет (или членство уже принято — отклонять нечего)
+    /// </summary>
+    public async Task<bool> DeclineInviteAsync(Guid userId, Guid roomId, CancellationToken ct = default)
+    {
+        var membership = await _db.RoomMemberships
+            .FirstOrDefaultAsync(m => m.RoomId == roomId && m.UserId == userId && m.Pending, ct);
+        if (membership is null)
+            return false;
+        _db.RoomMemberships.Remove(membership);
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<(Room room, RoomRole role)?> ResolveMembershipAsync(Guid userId, string code, CancellationToken ct = default)
@@ -80,6 +101,40 @@ public sealed class RoomService
     /// </summary>
     public Task<Room?> GetAsync(Guid roomId, CancellationToken ct = default)
         => _db.Rooms.FirstOrDefaultAsync(r => r.Id == roomId, ct);
+
+    /// <summary>
+    /// Срок жизни приглашения. По истечении оно не показывается и считается
+    /// просроченным (фоновая чистка удалит запись)
+    /// </summary>
+    public static readonly TimeSpan InviteTtl = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// Комнаты для быстрого входа из веба: собственные открытые комнаты
+    /// пользователя (роль Streamer — кнопка "Войти") и активные непросроченные
+    /// приглашения (роль Viewer — "Принять"/"Отклонить"). Принятые приглашения
+    /// сюда не попадают (Pending=false)
+    /// </summary>
+    public async Task<List<RoomDto>> MyRoomsAsync(Guid userId, CancellationToken ct = default)
+    {
+        // Открытые комнаты — чтобы стример быстро зашёл в свою комнату
+        var owned = await _db.Rooms
+            .Where(r => r.OwnerId == userId && r.IsOpen)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new RoomDto(r.Id, r.Code, r.Title, r.GameId, r.IsOpen, RoomRole.Streamer))
+            .ToListAsync(ct);
+
+        var since = DateTimeOffset.UtcNow - InviteTtl;
+        var invites = await (
+            from m in _db.RoomMemberships
+            join r in _db.Rooms on m.RoomId equals r.Id
+            where m.UserId == userId && !m.Banned && r.IsOpen && r.OwnerId != userId
+                  && m.Pending && (m.InvitedAt == null || m.InvitedAt >= since)
+            orderby r.CreatedAt descending
+            select new RoomDto(r.Id, r.Code, r.Title, r.GameId, r.IsOpen, m.Role))
+            .ToListAsync(ct);
+
+        return owned.Concat(invites).ToList();
+    }
 
     /// <summary>
     /// Закрыть комнату (только владелец). Возвращает false, если не владелец/нет комнаты
@@ -110,10 +165,25 @@ public sealed class RoomService
         if (user is null)
             return false;
 
-        var exists = await _db.RoomMemberships.AnyAsync(m => m.RoomId == roomId && m.UserId == user.Id, ct);
-        if (!exists)
+        var membership = await _db.RoomMemberships
+            .FirstOrDefaultAsync(m => m.RoomId == roomId && m.UserId == user.Id, ct);
+        if (membership is null)
         {
-            _db.RoomMemberships.Add(new RoomMembership { RoomId = roomId, UserId = user.Id, Role = RoomRole.Viewer });
+            // Новое приглашение: помечаем Pending + ставим время для срока жизни
+            _db.RoomMemberships.Add(new RoomMembership
+            {
+                RoomId = roomId,
+                UserId = user.Id,
+                Role = RoomRole.Viewer,
+                Pending = true,
+                InvitedAt = DateTimeOffset.UtcNow
+            });
+            await _db.SaveChangesAsync(ct);
+        }
+        else if (membership.Pending)
+        {
+            // Повторное приглашение — продлеваем срок жизни
+            membership.InvitedAt = DateTimeOffset.UtcNow;
             await _db.SaveChangesAsync(ct);
         }
         return true;
