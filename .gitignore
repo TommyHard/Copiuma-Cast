@@ -18,6 +18,8 @@ dist/
 
 # --- Secrets ---
 .env
+docker-compose.yml
+docker-compose.prod.yml
 
 # --- IDE ---
 .idea/
